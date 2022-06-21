@@ -259,15 +259,19 @@ jump_consistent_hash_value(_B0, J0, NumberOfBuckets, SeedState0) ->
     J = trunc((B + 1) / R),
     jump_consistent_hash_value(B, J, NumberOfBuckets, SeedState).
 
-value_to_hash(undefined, #basic_message { routing_keys = Routes }) ->
-    Routes;
-value_to_hash({header, Header}, #basic_message { content = Content }) ->
+value_to_hash(undefined, Msg) ->
+    mc:get_annotation(routing_keys, Msg);
+value_to_hash({header, Header}, Msg0) ->
+    Msg = mc:convert(rabbit_mc_amqp_legacy, Msg0),
+    #content{} = Content = mc:protocol_state(Msg),
     Headers = rabbit_basic:extract_headers(Content),
     case Headers of
         undefined -> undefined;
         _         -> rabbit_misc:table_lookup(Headers, Header)
     end;
-value_to_hash({property, Property}, #basic_message { content = Content }) ->
+value_to_hash({property, Property}, Msg0) ->
+    Msg = mc:convert(rabbit_mc_amqp_legacy, Msg0),
+    #content{} = Content = mc:protocol_state(Msg),
     #content{properties = #'P_basic'{ correlation_id = CorrId,
                                       message_id     = MsgId,
                                       timestamp      = Timestamp }} =

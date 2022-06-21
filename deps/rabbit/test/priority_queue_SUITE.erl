@@ -11,6 +11,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
+-compile(nowarn_export_all).
 -compile(export_all).
 
 all() ->
@@ -351,6 +352,7 @@ info_head_message_timestamp(Config) ->
 info_head_message_timestamp1(_Config) ->
     QName = rabbit_misc:r(<<"/">>, queue,
       <<"info_head_message_timestamp-queue">>),
+    ExName = rabbit_misc:r(<<"/">>, exchange, <<>>),
     Q0 = rabbit_amqqueue:pseudo_queue(QName, self()),
     Q1 = amqqueue:set_arguments(Q0, [{<<"x-max-priority">>, long, 2}]),
     PQ = rabbit_priority_queue,
@@ -359,27 +361,17 @@ info_head_message_timestamp1(_Config) ->
     true = PQ:is_empty(BQS1),
     '' = PQ:info(head_message_timestamp, BQS1),
     %% Publish one message with timestamp 1000.
-    Msg1 = #basic_message{
-      id = <<"msg1">>,
-      content = #content{
-        properties = #'P_basic'{
-          priority = 1,
-          timestamp = 1000
-        }},
-      is_persistent = false
-    },
+    Content1 = #content{properties = #'P_basic'{priority = 1,
+                                                timestamp = 1000},
+                        payload_fragments_rev = []},
+    Msg1 = rabbit_mc_amqp_legacy:message(ExName, <<>>, Content1, #{id => <<"msg1">>}),
     BQS2 = PQ:publish(Msg1, #message_properties{size = 0}, false, self(),
       noflow, BQS1),
     1000 = PQ:info(head_message_timestamp, BQS2),
     %% Publish a higher priority message with no timestamp.
-    Msg2 = #basic_message{
-      id = <<"msg2">>,
-      content = #content{
-        properties = #'P_basic'{
-          priority = 2
-        }},
-      is_persistent = false
-    },
+    Content2 = #content{properties = #'P_basic'{priority = 2},
+                        payload_fragments_rev = []},
+    Msg2 = rabbit_mc_amqp_legacy:message(ExName, <<>>, Content2, #{id => <<"msg2">>}),
     BQS3 = PQ:publish(Msg2, #message_properties{size = 0}, false, self(),
       noflow, BQS2),
     '' = PQ:info(head_message_timestamp, BQS3),
