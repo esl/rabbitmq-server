@@ -5,7 +5,6 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
 
 git_repository(
     name = "rules_erlang",
-    commit = "b20a440dd36171856bda22c3604a949f1333ba16",
     remote = "https://github.com/rabbitmq/rules_erlang.git",
     tag = "3.9.12",
 )
