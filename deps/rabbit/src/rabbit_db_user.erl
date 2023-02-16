@@ -447,7 +447,7 @@ set_user_permissions_in_khepri(Username, VHostName, UserPermission) ->
           VHostName,
           fun() ->
                   set_user_permissions_in_khepri_tx(Username, VHostName, UserPermission)
-          end))).
+          end)), rw).
 
 set_user_permissions_in_khepri_tx(Username, VHostName, UserPermission) ->
     Path = khepri_user_permission_path(
