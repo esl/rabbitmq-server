@@ -203,7 +203,7 @@ get_or_set_in_khepri(Key, Default) ->
                   {ok, undefined} ->
                       Record = #runtime_parameters{key   = Key,
                                                    value = Default},
-                      khepri_tx:put(Path, Record),
+                      ok = khepri_tx:put(Path, Record),
                       Record;
                   {ok, R} ->
                       R
@@ -282,7 +282,9 @@ get_all_in_khepri_tx(VHost, Component) ->
         %% Inside of a transaction, using `rabbit_vhost:exists` will cause
         %% a deadlock and timeout on the transaction, as it uses `rabbit_khepri:exists`.
         %% The `with` function uses the `khepri_tx` API instead
-        _     -> rabbit_db_vhost:with_fun_in_khepri_tx(VHost, fun() -> ok end)
+        _     ->
+            Fun = rabbit_db_vhost:with_fun_in_khepri_tx(VHost, fun() -> ok end),
+            Fun()
     end,
     case khepri_tx:get_many(Path) of
         {ok, Map} ->
