@@ -231,7 +231,7 @@ get_all_in_mnesia() ->
     rabbit_mnesia:dirty_read_all(?MNESIA_TABLE).
 
 get_all_in_khepri() ->
-    Path = khepri_vhost_rp_path(?KHEPRI_WILDCARD_STAR, ?KHEPRI_WILDCARD_STAR, ?KHEPRI_WILDCARD_STAR),
+    Path = khepri_rp_path() ++ [rabbit_khepri:if_has_data_wildcard()],
     {ok, Map} = rabbit_khepri:match(Path),
     maps:values(Map).
 
