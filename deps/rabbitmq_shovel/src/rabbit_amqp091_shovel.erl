@@ -39,7 +39,8 @@
 %% from and can break with the next upgrade. It should not be used by
 %% another one that the one who created it or survive a node restart.
 %% Thus, function references have been replace by the following MFA.
--export([decl_fun/3, publish_fun/4]).
+-export([decl_fun/3, publish_fun/4, props_fun_timestamp_header/4,
+         props_fun_forward_header/5]).
 
 -define(MAX_CONNECTION_CLOSE_TIMEOUT, 10000).
 
@@ -559,22 +560,24 @@ field_map(Fields, Idx0) ->
 fail(Reason) -> throw({error, Reason}).
 
 add_forward_headers_fun(Name, true, PubProps) ->
-    fun(SrcUri, DestUri, Props) ->
-            rabbit_shovel_util:update_headers(
-              [{<<"shovelled-by">>, rabbit_nodes:cluster_name()},
-               {<<"shovel-type">>,  <<"static">>},
-               {<<"shovel-name">>,  list_to_binary(atom_to_list(Name))}],
-              [], SrcUri, DestUri, PubProps(SrcUri, DestUri, Props))
-    end;
+   {?MODULE, props_fun_forward_header, [Name, PubProps]};
 add_forward_headers_fun(_Name, false, PubProps) ->
     PubProps.
 
+props_fun_forward_header(Name, {M, F, Args}, SrcUri, DestUri, Props) ->
+    rabbit_shovel_util:update_headers(
+      [{<<"shovelled-by">>, rabbit_nodes:cluster_name()},
+       {<<"shovel-type">>,  <<"static">>},
+       {<<"shovel-name">>,  list_to_binary(atom_to_list(Name))}],
+      [], SrcUri, DestUri, apply(M, F, Args ++ [SrcUri, DestUri, Props])).
+
 add_timestamp_header_fun(true, PubProps) ->
-    fun(SrcUri, DestUri, Props) ->
-        rabbit_shovel_util:add_timestamp_header(
-            PubProps(SrcUri, DestUri, Props))
-    end;
+    {?MODULE, props_fun_timestamp_header, [PubProps]};
 add_timestamp_header_fun(false, PubProps) -> PubProps.
+
+props_fun_timestamp_header({M, F, Args}, SrcUri, DestUri, Props) ->
+    rabbit_shovel_util:add_timestamp_header(
+      apply(M, F, Args ++ [SrcUri, DestUri, Props])).
 
 parse_declaration({[], Acc}) ->
     Acc;
