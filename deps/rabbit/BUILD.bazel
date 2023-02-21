@@ -580,8 +580,8 @@ rabbitmq_integration_suite(
     size = "medium",
     flaky = True,
     shard_count = 10,
-    additional_srcs = [
-        "test/cluster_rename_SUITE.erl",
+    additional_beam = [
+        "test/cluster_rename_SUITE",
     ],
 )
 
