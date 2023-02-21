@@ -581,7 +581,7 @@ rabbitmq_integration_suite(
     flaky = True,
     shard_count = 10,
     additional_beam = [
-        "test/cluster_rename_SUITE",
+        ":cluster_rename_SUITE_beam_files",
     ],
 )
 
