@@ -636,7 +636,7 @@ rabbitmq_integration_suite(
 rabbitmq_integration_suite(
     name = "queue_master_location_SUITE",
     size = "large",
-    shard_count = 2,
+    shard_count = 3,
 )
 
 rabbitmq_integration_suite(

@@ -614,7 +614,7 @@ delete_in_khepri(XName, IfUnused) ->
                   {ok, X} -> DeletionFun(X, false);
                   _ -> {error, not_found}
               end
-      end).
+      end, rw).
 
 conditional_delete_in_khepri(X = #exchange{name = XName}, OnlyDurable) ->
     case rabbit_db_binding:has_for_source_in_khepri(XName) of
