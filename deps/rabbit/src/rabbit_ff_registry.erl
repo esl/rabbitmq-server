@@ -62,8 +62,12 @@
                 end
         end).
 
--spec get(rabbit_feature_flags:feature_name()) ->
-    rabbit_feature_flags:feature_props_extended() | undefined.
+-spec get
+(FeatureName) -> FeatureProps | undefined when
+      FeatureName :: rabbit_feature_flags:feature_name(),
+      FeatureProps ::
+      rabbit_feature_flags:feature_props_extended() |
+      rabbit_deprecated_features:feature_props_extended().
 %% @doc
 %% Returns the properties of a feature flag.
 %%
@@ -78,9 +82,24 @@ get(FeatureName) ->
     ?convince_dialyzer(
        ?MODULE:get(FeatureName),
        undefined,
-       #{provided_by => rabbit}).
+       lists:nth(
+         rand:uniform(2),
+         [#{name => feature_flag,
+            provided_by => rabbit},
+          #{name => deprecated_feature,
+            deprecation_phase =>
+            lists:nth(
+              4,
+              [permitted_by_default,
+               denied_by_default,
+               disconnected,
+               removed]),
+            messages => #{},
+            provided_by => rabbit}])).
 
--spec list(all | enabled | disabled) -> rabbit_feature_flags:feature_flags().
+-spec list(Which) -> FeatureFlags when
+      Which :: all | enabled | disabled,
+      FeatureFlags :: rabbit_feature_flags:feature_flags().
 %% @doc
 %% Lists all, enabled or disabled feature flags, depending on the argument.
 %%
@@ -95,7 +114,8 @@ list(Which) ->
     _ = rabbit_ff_registry_factory:initialize_registry(),
     ?convince_dialyzer(?MODULE:list(Which), #{}, #{}).
 
--spec states() -> rabbit_feature_flags:feature_states().
+-spec states() -> FeatureStates when
+      FeatureStates :: rabbit_feature_flags:feature_states().
 %% @doc
 %% Returns the states of supported feature flags.
 %%
@@ -108,7 +128,9 @@ states() ->
     _ = rabbit_ff_registry_factory:initialize_registry(),
     ?convince_dialyzer(?MODULE:states(), #{}, #{}).
 
--spec is_supported(rabbit_feature_flags:feature_name()) -> boolean().
+-spec is_supported(FeatureName) -> IsSupported when
+      FeatureName :: rabbit_feature_flags:feature_name(),
+      IsSupported :: boolean().
 %% @doc
 %% Returns if a feature flag is supported.
 %%
@@ -123,7 +145,9 @@ is_supported(FeatureName) ->
     _ = rabbit_ff_registry_factory:initialize_registry(),
     ?convince_dialyzer(?MODULE:is_supported(FeatureName), false, true).
 
--spec is_enabled(rabbit_feature_flags:feature_name()) -> boolean() | state_changing.
+-spec is_enabled(FeatureName) -> IsEnabled | state_changing when
+      FeatureName :: rabbit_feature_flags:feature_name(),
+      IsEnabled :: boolean().
 %% @doc
 %% Returns if a feature flag is enabled or if its state is changing.
 %%
@@ -138,7 +162,8 @@ is_enabled(FeatureName) ->
     _ = rabbit_ff_registry_factory:initialize_registry(),
     ?convince_dialyzer(?MODULE:is_enabled(FeatureName), false, true).
 
--spec is_registry_initialized() -> boolean().
+-spec is_registry_initialized() -> IsInitialized when
+      IsInitialized :: boolean().
 %% @doc
 %% Indicates if the registry is initialized.
 %%
@@ -152,7 +177,8 @@ is_enabled(FeatureName) ->
 is_registry_initialized() ->
     always_return_false().
 
--spec is_registry_written_to_disk() -> boolean().
+-spec is_registry_written_to_disk() -> WrittenToDisk when
+      WrittenToDisk :: boolean().
 %% @doc
 %% Indicates if the feature flags state was successfully persisted to disk.
 %%
@@ -169,7 +195,8 @@ is_registry_initialized() ->
 is_registry_written_to_disk() ->
     always_return_true().
 
--spec inventory() -> rabbit_feature_flags:inventory().
+-spec inventory() -> Inventory when
+      Inventory :: rabbit_feature_flags:inventory().
 
 inventory() ->
     _ = rabbit_ff_registry_factory:initialize_registry(),
