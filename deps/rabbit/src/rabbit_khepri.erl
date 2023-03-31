@@ -80,7 +80,8 @@
          node_info/0]).
 -export([reset/0,
          force_reset/0]).
--export([cluster_status_from_khepri/0]).
+-export([cluster_status_from_khepri/0,
+         cli_cluster_status/0]).
 
 %% Path functions
 -export([if_has_data/1,
@@ -450,6 +451,17 @@ get_sys_status(Proc) ->
         _:_ ->
             {error, other}
 
+    end.
+
+cli_cluster_status() ->
+    case rabbit:is_running() of
+        true ->
+            Nodes = nodes(),
+            [{nodes, [{disc, [N || N <- Nodes, rabbit_nodes:is_running(N)]}]},
+             {running_nodes, Nodes},
+             {cluster_name, rabbit_nodes:cluster_name()}];
+        false ->
+            []
     end.
 
 %% For when Khepri is enabled

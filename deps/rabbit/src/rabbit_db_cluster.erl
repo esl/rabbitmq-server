@@ -244,7 +244,13 @@ check_consistency_using_khepri() ->
 %% command.
 
 cli_cluster_status() ->
-    cli_cluster_status_using_mnesia().
+    rabbit_db:run(
+      #{mnesia => fun() -> cli_cluster_status_using_mnesia() end,
+        khepri => fun() -> cli_cluster_status_using_khepri() end
+       }).
 
 cli_cluster_status_using_mnesia() ->
     rabbit_mnesia:status().
+
+cli_cluster_status_using_khepri() ->
+    rabbit_khepri:status().
