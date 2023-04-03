@@ -79,7 +79,9 @@ groups() ->
                                                  start_with_invalid_schema_in_path,
                                                  persistent_cluster_id,
                                                  stop_start_cluster_node,
-                                                 restart_cluster_node
+                                                 restart_cluster_node,
+                                                 unsupported_forget_cluster_node_offline,
+                                                 unsupported_update_cluster_nodes
                                                 ]}
                           ]},
                          {unclustered_3_nodes, [],
@@ -90,7 +92,6 @@ groups() ->
                                                  force_reset_node_in_khepri,
                                                  join_to_start_interval,
                                                  forget_cluster_node_in_khepri,
-                                                 forget_cluster_node_offline_unsupported_in_khepri,
                                                  start_nodes_in_reverse_order,
                                                  start_nodes_in_stop_order,
                                                  start_nodes_in_stop_order_with_force_boot
@@ -483,19 +484,13 @@ forget_cluster_node_in_khepri(Config) ->
     assert_not_clustered(Rabbit),
     assert_not_clustered(Hare).
 
-forget_cluster_node_offline_unsupported_in_khepri(Config) ->
-    [Rabbit, Hare, Bunny] = cluster_members(Config),
-    %% Now we remove Rabbit from an offline node.
-    stop_join_start(Bunny, Hare),
-    stop_join_start(Rabbit, Hare),
-    assert_clustered([Rabbit, Hare, Bunny]),
-    ok = stop_app(Hare),
-    ok = stop_app(Rabbit),
-    ok = stop_app(Bunny),
-    assert_failure(fun () -> forget_cluster_node(Hare, Bunny) end),
-    assert_failure(fun () -> forget_cluster_node(Hare, Bunny, true) end),
+unsupported_forget_cluster_node_offline(Config) ->
+    [Rabbit, Hare] = cluster_members(Config),
     ok = rabbit_ct_broker_helpers:stop_node(Config, Hare),
-    assert_failure(fun () -> forget_cluster_node(Hare, Bunny, true) end).
+    ok = stop_app(Rabbit),
+    Ret0 = rabbit_ct_broker_helpers:rabbitmqctl(Config, Hare,
+                                                ["forget_cluster_node", "--offline", Rabbit]),
+    is_not_supported(Ret0).
 
 forget_removes_things(Config) ->
     test_removes_things(Config, fun (R, H) -> ok = forget_cluster_node(H, R) end).
@@ -855,6 +850,21 @@ update_cluster_nodes(Config) ->
     ok = start_app(Rabbit),
     assert_not_clustered(Hare),
     assert_clustered([Rabbit, Bunny]).
+
+unsupported_update_cluster_nodes(Config) ->
+    [Rabbit, Hare] = cluster_members(Config),
+
+    %% Mnesia is running...
+    assert_failure(fun () -> update_cluster_nodes(Rabbit, Hare) end),
+
+    ok = stop_app(Rabbit),
+    Ret = update_cluster_nodes(Rabbit, Hare),
+    is_not_supported(Ret).
+
+is_not_supported(Ret) ->
+    ?assertMatch({error, _, _}, Ret),
+    {error, _, Msg} = Ret,
+    ?assertMatch(match, re:run(Msg, ".*not_supported.*", [{capture, none}])).
 
 classic_config_discovery_node_list(Config) ->
     [Rabbit, Hare] = cluster_members(Config),

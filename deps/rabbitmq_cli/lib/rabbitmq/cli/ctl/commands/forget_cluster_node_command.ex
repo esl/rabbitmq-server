@@ -40,11 +40,10 @@ defmodule RabbitMQ.CLI.Ctl.Commands.ForgetClusterNodeCommand do
       RabbitMQ.CLI.Core.Helpers.defer(fn ->
         _ = :rabbit_event.start_link()
 
-        case function_exported?(:rabbit_db_cluster, :forget_member, 2) do
-          true ->
-            :rabbit_db_cluster.forget_member(to_atom(node_to_remove), true)
-
-          false ->
+        try do
+          :rabbit_db_cluster.forget_member(to_atom(node_to_remove), true)
+        catch
+          :error, :undef ->
             :rabbit_mnesia.forget_cluster_node(to_atom(node_to_remove), true)
         end
       end)
