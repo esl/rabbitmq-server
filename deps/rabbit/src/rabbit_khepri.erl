@@ -466,6 +466,12 @@ cli_cluster_status() ->
 
 %% For when Khepri is enabled
 init_cluster(ClusterNodes) ->
+    %% TODO this probably returns an empty list! If we don't know the local nodes, we can't exclude from unclustered nodes and it crashes trying to join with itself. Maybe we have to setup khepri here and not in do_join
+    %% Ensure the local Khepri store is running before we can join it. It
+    %% could be stopped if RabbitMQ is not running for instance.
+    ok = setup(),
+    khepri:info(?RA_CLUSTER_NAME),
+
     ActualNodes = locally_known_nodes(),
     UnclusteredNodes = ClusterNodes -- ActualNodes,
     case UnclusteredNodes of
@@ -663,9 +669,7 @@ are_we_clustered_with(Node) ->
     %% We're going to fail to join anyway, but for the user is not the same
     %% to return 'already a member' than 'inconsistent cluster'.
     {AllNodes, _DiscNodes, _RunningNodes} = rabbit_node_monitor:read_cluster_status(),
-    Ret = lists:member(Node, AllNodes),
-    rabbit_log:warning("TRACE are_we_clustered_with(~p) ~p", [Node, AllNodes]),
-    Ret.
+    lists:member(Node, AllNodes).
 
 node_info() ->
     {rabbit_misc:otp_release(), rabbit_misc:version(), cluster_status_from_khepri()}.
