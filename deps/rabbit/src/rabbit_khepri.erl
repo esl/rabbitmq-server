@@ -466,20 +466,12 @@ cli_cluster_status() ->
 
 %% For when Khepri is enabled
 init_cluster(ClusterNodes) ->
-    %% TODO this probably returns an empty list! If we don't know the local nodes, we can't exclude from unclustered nodes and it crashes trying to join with itself. Maybe we have to setup khepri here and not in do_join
     %% Ensure the local Khepri store is running before we can join it. It
     %% could be stopped if RabbitMQ is not running for instance.
     ok = setup(),
     khepri:info(?RA_CLUSTER_NAME),
-
-    ActualNodes = locally_known_nodes(),
-    UnclusteredNodes = ClusterNodes -- ActualNodes,
-    case UnclusteredNodes of
-        [] ->
-            ok;
-        _ ->
-            add_members(UnclusteredNodes)
-    end.
+    _ = application:ensure_all_started(khepri_mnesia_migration),
+    mnesia_to_khepri:sync_cluster_membership(?STORE_ID).
 
 add_members([]) ->
     ok;

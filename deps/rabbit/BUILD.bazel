@@ -147,6 +147,7 @@ DEPS = [
     "//deps/rabbit_common:erlang_app",
     "@cuttlefish//:erlang_app",
     "@khepri//:erlang_app",
+    "@khepri_mnesia_migration//:erlang_app",
     "@ra//:erlang_app",
     "@ranch//:erlang_app",
     "@stdout_formatter//:erlang_app",
