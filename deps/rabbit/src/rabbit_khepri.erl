@@ -465,29 +465,13 @@ cli_cluster_status() ->
     end.
 
 %% For when Khepri is enabled
-init_cluster(ClusterNodes) ->
+init_cluster(_ClusterNodes) ->
     %% Ensure the local Khepri store is running before we can join it. It
     %% could be stopped if RabbitMQ is not running for instance.
     ok = setup(),
     khepri:info(?RA_CLUSTER_NAME),
     _ = application:ensure_all_started(khepri_mnesia_migration),
     mnesia_to_khepri:sync_cluster_membership(?STORE_ID).
-
-add_members([]) ->
-    ok;
-add_members([UnclusteredNode | UnclusteredNodes]) ->
-    ThisNode = node(),
-    case check_cluster_consistency(UnclusteredNode, false) of
-        {ok, _} ->
-            case add_member(UnclusteredNode, ThisNode) of
-                ok ->
-                    add_members(UnclusteredNodes);
-                Error ->
-                    Error
-            end;
-        Error ->
-            Error
-    end.
 
 %%%%%%%%
 %% TODO run_peer_discovery!!
