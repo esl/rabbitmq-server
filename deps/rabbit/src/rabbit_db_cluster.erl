@@ -259,7 +259,7 @@ cli_cluster_status_using_mnesia() ->
     rabbit_mnesia:status().
 
 cli_cluster_status_using_khepri() ->
-    rabbit_khepri:status().
+    rabbit_khepri:cli_cluster_status().
 
 rename(Node, NodeMapList) ->
     rabbit_db:run(
