@@ -224,10 +224,6 @@ ensure_khepri_cluster_matches_mnesia(FeatureName) ->
        [FeatureName]),
     rabbit_khepri:init_cluster().
 
-khepri_cluster_on_node(Node) ->
-    lists:sort(
-      rabbit_misc:rpc_call(Node, rabbit_khepri, nodes_if_khepri_enabled, [])).
-
 migrate_tables_to_khepri(FeatureName, TablesAndOwners) ->
     {Tables, _} = lists:unzip(TablesAndOwners),
     rabbit_table:wait(Tables, _Retry = true),
