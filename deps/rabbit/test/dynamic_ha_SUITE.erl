@@ -110,7 +110,14 @@ init_per_testcase(Testcase, Config) ->
     Config2 = rabbit_ct_helpers:run_steps(Config1,
       rabbit_ct_broker_helpers:setup_steps() ++
       rabbit_ct_client_helpers:setup_steps()),
-    _ = rabbit_ct_broker_helpers:enable_feature_flag(Config2, message_containers),
+    case Testcase of
+        change_cluster ->
+            %% do not enable message_containers feature flag as it will stop
+            %% nodes in mixed versions joining later
+            ok;
+        _ ->
+            _ = rabbit_ct_broker_helpers:enable_feature_flag(Config2, message_containers)
+    end,
     Config2.
 
 end_per_testcase(Testcase, Config) ->

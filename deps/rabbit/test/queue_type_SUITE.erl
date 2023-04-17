@@ -245,11 +245,16 @@ stream(Config) ->
 
     qos(SubCh, 10, false),
     Args = [{<<"x-stream-offset">>, longstr, <<"last">>}],
-    amqp_channel:subscribe(
-      SubCh, #'basic.consume'{queue = QName,
-                              consumer_tag = <<"ctag">>,
-                              arguments = Args},
-      self()),
+
+    rabbit_ct_helpers:await_condition(
+      fun() ->
+              amqp_channel:subscribe(
+                SubCh, #'basic.consume'{queue = QName,
+                                        consumer_tag = <<"ctag">>,
+                                        arguments = Args},
+                self()),
+              true
+      end),
     receive
         {#'basic.deliver'{delivery_tag = T,
                           redelivered  = false},
