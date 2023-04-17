@@ -320,6 +320,7 @@ death_queue_names(#basic_message{content = Content}) ->
 last_death(#basic_message{content = Content}) ->
     #content{properties = #'P_basic'{headers = Headers}} =
         rabbit_binary_parser:ensure_content_decoded(Content),
+    %% TODO: review this conversion and/or change the API
     case rabbit_misc:table_lookup(Headers, <<"x-death">>) of
         {array, [{table, Info} | _]} ->
             X = x_death_event_key(Info, <<"exchange">>),
@@ -328,7 +329,7 @@ last_death(#basic_message{content = Content}) ->
             Keys = x_death_event_key(Info, <<"routing_keys">>),
             Count = x_death_event_key(Info, <<"count">>),
             {Q, #death{exchange = X,
-                       % reason = R,
+                       timestamp = 0,
                        routing_keys = Keys,
                        count = Count}};
         _ ->
