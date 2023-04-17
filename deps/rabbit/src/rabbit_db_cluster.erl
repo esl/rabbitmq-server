@@ -76,9 +76,9 @@ join_using_khepri(RemoteNode, NodeType) ->
         ok ->
             case join_using_mnesia(RemoteNode, NodeType) of
                 ok ->
-                    rabbit_khepri:init_cluster();
+                    rabbit_khepri:join_cluster(RemoteNode);
                 {ok, already_member} ->
-                    rabbit_khepri:init_cluster();
+                    rabbit_khepri:join_cluster(RemoteNode);
                 Error ->
                     Error
             end;
