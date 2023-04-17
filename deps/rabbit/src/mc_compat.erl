@@ -2,6 +2,7 @@
 
 -include_lib("rabbit_common/include/rabbit.hrl").
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
+-include("mc.hrl").
 
 -export([
          %init/3,
@@ -22,10 +23,10 @@
          %serialize/1,
          %prepare/1,
          record_death/3,
-         is_death_cycle/2
+         is_death_cycle/2,
          %deaths/1,
-         %last_death/1,
-         %death_queue_names/1
+         last_death/1,
+         death_queue_names/1
          ]).
 
 -type state() :: rabbit_types:message().
@@ -291,7 +292,7 @@ is_death_cycle(Queue, #basic_message{content = Content}) ->
                 [H|_] ->
                     lists:all(fun ({table, D}) ->
                                       {longstr, <<"rejected">>} =/=
-                                      rabbit_misc:table_lookup(D, <<"reason">>);
+                                          rabbit_misc:table_lookup(D, <<"reason">>);
                                   (_) ->
                                       %% There was something we didn't expect, therefore
                                       %% a client must have put it there, therefore the
@@ -302,6 +303,39 @@ is_death_cycle(Queue, #basic_message{content = Content}) ->
         _ ->
             false
     end.
+
+death_queue_names(#basic_message{content = Content}) ->
+    #content{properties = #'P_basic'{headers = Headers}} =
+        rabbit_binary_parser:ensure_content_decoded(Content),
+    case rabbit_misc:table_lookup(Headers, <<"x-death">>) of
+        {array, Deaths} ->
+            [begin
+                 {_, N} = rabbit_misc:table_lookup(D, <<"queue">>),
+                 N
+             end || {table, D} <- Deaths];
+        _ ->
+            []
+    end.
+
+last_death(#basic_message{content = Content}) ->
+    #content{properties = #'P_basic'{headers = Headers}} =
+        rabbit_binary_parser:ensure_content_decoded(Content),
+    case rabbit_misc:table_lookup(Headers, <<"x-death">>) of
+        {array, [{table, Info} | _]} ->
+            X = x_death_event_key(Info, <<"exchange">>),
+            Q = x_death_event_key(Info, <<"queue">>),
+            % R = x_death_event_key(Info, <<"reason">>),
+            Keys = x_death_event_key(Info, <<"routing_keys">>),
+            Count = x_death_event_key(Info, <<"count">>),
+            {Q, #death{exchange = X,
+                       % reason = R,
+                       routing_keys = Keys,
+                       count = Count}};
+        _ ->
+            undefined
+    end.
+
+
 % detect_cycles(rejected, _Msg, Queues) ->
 %     {Queues, []};
 

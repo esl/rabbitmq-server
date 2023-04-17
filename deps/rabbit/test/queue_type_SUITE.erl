@@ -248,12 +248,17 @@ stream(Config) ->
 
     rabbit_ct_helpers:await_condition(
       fun() ->
-              amqp_channel:subscribe(
-                SubCh, #'basic.consume'{queue = QName,
-                                        consumer_tag = <<"ctag">>,
-                                        arguments = Args},
-                self()),
-              true
+              try
+                  amqp_channel:subscribe(
+                    SubCh, #'basic.consume'{queue = QName,
+                                            consumer_tag = <<"ctag">>,
+                                            arguments = Args},
+                    self()),
+                  true
+              catch
+                  _:_ ->
+                      false
+              end
       end),
     receive
         {#'basic.deliver'{delivery_tag = T,

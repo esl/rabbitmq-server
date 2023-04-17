@@ -20,7 +20,7 @@
          prepare/1,
          record_death/3,
          is_death_cycle/2,
-         deaths/1,
+         % deaths/1,
          last_death/1,
          death_queue_names/1
          ]).
@@ -292,11 +292,13 @@ death_queue_names(#?MODULE{deaths = Deaths}) ->
             [];
         #deaths{records = Records} ->
             [Q || {Q, _} <- maps:keys(Records)]
-    end.
+    end;
+death_queue_names(BasicMsg) ->
+    mc_compat:death_queue_names(BasicMsg).
 
--spec deaths(state()) -> undefined | #deaths{}.
-deaths(#?MODULE{deaths = Deaths}) ->
-    Deaths.
+% -spec deaths(state()) -> undefined | #deaths{}.
+% deaths(#?MODULE{deaths = Deaths}) ->
+%     Deaths.
 
 -spec last_death(state()) ->
     undefined | {death_key(), #death{}}.
@@ -304,7 +306,9 @@ last_death(#?MODULE{deaths = undefined}) ->
     undefined;
 last_death(#?MODULE{deaths = #deaths{last = Last,
                                      records = Rs}}) ->
-    {Last, maps:get(Last, Rs)}.
+    {Last, maps:get(Last, Rs)};
+last_death(BasicMsg) ->
+    mc_compat:last_death(BasicMsg).
 
 -spec serialize(state()) -> iodata().
 serialize(#?MODULE{protocol = Proto,
