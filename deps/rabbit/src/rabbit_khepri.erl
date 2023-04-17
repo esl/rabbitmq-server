@@ -71,9 +71,7 @@
 -export([init_cluster/0]).
 -export([do_join/1]).
 %% To add the current node to an existing cluster
--export([check_join_cluster/1,
-         join_cluster/1,
-         leave_cluster/1]).
+-export([leave_cluster/1]).
 -export([is_clustered/0]).
 -export([check_cluster_consistency/0,
          check_cluster_consistency/2,
@@ -435,73 +433,6 @@ init_cluster() ->
     _ = application:ensure_all_started(khepri_mnesia_migration),
     mnesia_to_khepri:sync_cluster_membership(?STORE_ID).
 
-%%%%%%%%
-%% TODO run_peer_discovery!!
-%%%%%%%
-
-check_join_cluster(DiscoveryNode) ->
-    {ClusterNodes, _} = discover_cluster([DiscoveryNode]),
-    case me_in_nodes(ClusterNodes) of
-        false ->
-            case check_cluster_consistency(DiscoveryNode, false) of
-                {ok, _S} ->
-                    ok;
-                Error ->
-                    Error
-            end;
-        true ->
-            %% DiscoveryNode thinks that we are part of a cluster, but
-            %% do we think so ourselves?
-            case are_we_clustered_with(DiscoveryNode) of
-                true ->
-                    rabbit_log:info("Asked to join a cluster but already a member of it: ~tp", [ClusterNodes]),
-                    {ok, already_member};
-                false ->
-                    Msg = format_inconsistent_cluster_message(DiscoveryNode, node()),
-                    rabbit_log:error(Msg),
-                    {error, {inconsistent_cluster, Msg}}
-            end
-    end.
-
-join_cluster(DiscoveryNode) ->
-    {ClusterNodes, _} = discover_cluster([DiscoveryNode]),
-    case me_in_nodes(ClusterNodes) of
-        false ->
-            case check_cluster_consistency(DiscoveryNode, false) of
-                {ok, _S} ->
-                    ThisNode = node(),
-                    retry_khepri_op(fun() -> add_member(ThisNode, [DiscoveryNode]) end, 60);
-                Error ->
-                    Error
-            end;
-        true ->
-            %% DiscoveryNode thinks that we are part of a cluster, but
-            %% do we think so ourselves?
-            case are_we_clustered_with(DiscoveryNode) of
-                true ->
-                    rabbit_log:info("Asked to join a cluster but already a member of it: ~tp", [ClusterNodes]),
-                    {ok, already_member};
-                false ->
-                    Msg = format_inconsistent_cluster_message(DiscoveryNode, node()),
-                    rabbit_log:error(Msg),
-                    {error, {inconsistent_cluster, Msg}}
-            end
-    end.
-
-discover_cluster(Nodes) ->
-    case lists:foldl(fun (_,    {ok, Res}) -> {ok, Res};
-                         (Node, _)         -> discover_cluster0(Node)
-                     end, {error, no_nodes_provided}, Nodes) of
-        {ok, Res}        -> Res;
-        {error, E}       -> throw({error, E});
-        {badrpc, Reason} -> throw({badrpc_multi, Reason, Nodes})
-    end.
-
-discover_cluster0(Node) when Node == node() ->
-    {error, cannot_cluster_node_with_itself};
-discover_cluster0(Node) ->
-    rpc:call(Node, ?MODULE, cluster_status_from_khepri, []).
-
 leave_cluster(Node) ->
     retry_khepri_op(fun() -> remove_member(Node) end, 60).
 
@@ -601,13 +532,6 @@ format_inconsistent_cluster_message(Thinker, Dissident) ->
                        [Thinker, Dissident, Dissident]).
 
 me_in_nodes(Nodes) -> lists:member(node(), Nodes).
-
-are_we_clustered_with(Node) ->
-    %% Khepri is stopped at this point, let's ask rabbit_node_monitor
-    %% We're going to fail to join anyway, but for the user is not the same
-    %% to return 'already a member' than 'inconsistent cluster'.
-    {AllNodes, _DiscNodes, _RunningNodes} = rabbit_node_monitor:read_cluster_status(),
-    lists:member(Node, AllNodes).
 
 node_info() ->
     {rabbit_misc:otp_release(), rabbit_misc:version(), cluster_status_from_khepri()}.
