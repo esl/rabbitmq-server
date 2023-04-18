@@ -240,34 +240,33 @@ stream(Config) ->
     #'confirm.select_ok'{} = amqp_channel:call(Ch, #'confirm.select'{}),
     amqp_channel:register_confirm_handler(Ch, self()),
     publish_and_confirm(Ch, QName, <<"msg1">>),
-    SubCh = rabbit_ct_client_helpers:open_channel(Config, 1),
-    % ok = subscribe(SubCh, QName, ConsumerTag3),
-
-    qos(SubCh, 10, false),
     Args = [{<<"x-stream-offset">>, longstr, <<"last">>}],
 
     rabbit_ct_helpers:await_condition(
       fun() ->
+              SubCh = rabbit_ct_client_helpers:open_channel(Config, 1),
+              qos(SubCh, 10, false),
               try
                   amqp_channel:subscribe(
                     SubCh, #'basic.consume'{queue = QName,
                                             consumer_tag = <<"ctag">>,
                                             arguments = Args},
                     self()),
+                  receive
+                      {#'basic.deliver'{delivery_tag = T,
+                                        redelivered  = false},
+                       #amqp_msg{}} ->
+                          basic_nack(SubCh, T)
+                  after 5000 ->
+                            exit(basic_deliver_timeout)
+                  end,
                   true
               catch
-                  _:_ ->
+                  _:Err ->
+                      ct:pal("basic.consume error ~p", [Err]),
                       false
               end
       end),
-    receive
-        {#'basic.deliver'{delivery_tag = T,
-                          redelivered  = false},
-         #amqp_msg{}} ->
-            basic_nack(SubCh, T)
-    after 5000 ->
-              exit(basic_deliver_timeout)
-    end,
 
 
     ok.
