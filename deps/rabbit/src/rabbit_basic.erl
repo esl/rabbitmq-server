@@ -9,9 +9,14 @@
 -include_lib("rabbit_common/include/rabbit.hrl").
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
 
--export([
-         message/3, message_no_id/3, message/4, properties/1, prepend_table_header/3,
-         extract_headers/1, extract_timestamp/1, map_headers/2,
+-export([message/3,
+         message_no_id/3,
+         message/4,
+         properties/1,
+         prepend_table_header/3,
+         extract_headers/1,
+         extract_timestamp/1,
+         map_headers/2,
          delivery/4,
          delivery/5,
          header_routes/1, parse_expiration/1, header/2, header/3]).
@@ -109,7 +114,6 @@ message(XName, RoutingKey, Content) ->
         (rabbit_exchange:name(), rabbit_router:routing_key(), properties_input(),
          binary()) ->
             rabbit_types:message().
-
 message(XName, RoutingKey, RawProperties, Body) ->
     Properties = properties(RawProperties),
     Content = build_content(Properties, Body),

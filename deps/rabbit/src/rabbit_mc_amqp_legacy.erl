@@ -284,9 +284,14 @@ message(#resource{name = ExchangeNameBin}, RoutingKey,
                     Anns#{routing_keys => [RoutingKey | HeaderRoutes],
                           exchange => ExchangeNameBin});
 message(#resource{} = XName, RoutingKey,
-        #content{} = Content, _Anns, false) ->
+        #content{} = Content, Anns, false) ->
     {ok, Msg} = rabbit_basic:message(XName, RoutingKey, Content),
-    Msg.
+    case Anns of
+        #{id := Id} ->
+            Msg#basic_message{id = Id};
+        _ ->
+            Msg
+    end.
 
 from_basic_message(#basic_message{content = Content,
                                   id = Id,
