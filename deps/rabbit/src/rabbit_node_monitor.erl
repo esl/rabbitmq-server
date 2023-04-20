@@ -474,6 +474,11 @@ handle_cast({check_partial_partition, Node, Rep, NodeGUID, MyGUID, RepGUID},
         maps:find(Node, GUIDs) =:= {ok, NodeGUID} of
         true  -> spawn_link( %%[1]
                    fun () ->
+                           %% Some network partitions are slower to develop into a full 
+                           %% network partition. In this case, a small delay can avoid
+                           %% a false positive partial partition. Recommended value is 1000.
+                           timer:sleep(application:get_env(rabbit, 
+                               partial_partition_detection_delay, 0)),
                            case rpc:call(Node, erlang, system_info, [creation]) of
                                {badrpc, _} -> ok;
                                NodeGUID ->
