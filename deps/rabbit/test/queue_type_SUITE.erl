@@ -242,37 +242,33 @@ stream(Config) ->
     publish_and_confirm(Ch, QName, <<"msg1">>),
     Args = [{<<"x-stream-offset">>, longstr, <<"last">>}],
 
-    rabbit_ct_helpers:await_condition(
-      fun() ->
-              SubCh = rabbit_ct_client_helpers:open_channel(Config, 1),
-              qos(SubCh, 10, false),
-              try
-                  amqp_channel:subscribe(
-                    SubCh, #'basic.consume'{queue = QName,
-                                            consumer_tag = <<"ctag">>,
-                                            arguments = Args},
-                    self()),
-                  receive
-                      {#'basic.deliver'{delivery_tag = T,
-                                        redelivered  = false},
-                       #amqp_msg{}} ->
-                          basic_nack(SubCh, T)
-                  after 5000 ->
-                            exit(basic_deliver_timeout)
-                  end,
-                  true
-              catch
-                  _:Err ->
-                      ct:pal("basic.consume error ~p", [Err]),
-                      false
-              end
-      end),
+    SubCh = rabbit_ct_client_helpers:open_channel(Config, 2),
+    qos(SubCh, 10, false),
+    try
+        amqp_channel:subscribe(
+          SubCh, #'basic.consume'{queue = QName,
+                                  consumer_tag = <<"ctag">>,
+                                  arguments = Args},
+          self()),
+        receive
+            {#'basic.deliver'{delivery_tag = T,
+                              redelivered  = false},
+             #amqp_msg{}} ->
+                basic_ack(SubCh, T)
+        after 5000 ->
+                  exit(basic_deliver_timeout)
+        end
+    catch
+        _:Err ->
+            ct:pal("basic.consume error ~p", [Err]),
+            exit(Err)
+    end,
 
 
     ok.
 
 %% Utility
-%%
+
 delete_queues() ->
     [rabbit_amqqueue:delete(Q, false, false, <<"dummy">>)
      || Q <- rabbit_amqqueue:list()].
