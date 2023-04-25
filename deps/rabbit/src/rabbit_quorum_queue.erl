@@ -36,6 +36,7 @@
 -export([open_files/1]).
 -export([peek/2, peek/3]).
 -export([add_member/4]).
+-export([add_member/5]).
 -export([delete_member/3]).
 -export([requeue/3]).
 -export([policy_changed/1]).
@@ -1060,6 +1061,8 @@ get_sys_status(Proc) ->
 
 
 add_member(VHost, Name, Node, Timeout) ->
+    add_member(VHost, Name, Node, active, Timeout).
+add_member(VHost, Name, Node, Role, Timeout) ->
     QName = #resource{virtual_host = VHost, name = Name, kind = queue},
     case rabbit_amqqueue:lookup(QName) of
         {ok, Q} when ?amqqueue_is_classic(Q) ->
@@ -1075,7 +1078,7 @@ add_member(VHost, Name, Node, Timeout) ->
                           %% idempotent by design
                           ok;
                         false ->
-                            add_member(Q, Node, Timeout)
+                            add_member2(Q, Node, Role, Timeout)
                     end
             end;
         {ok, _Q} ->
@@ -1084,7 +1087,7 @@ add_member(VHost, Name, Node, Timeout) ->
                     E
     end.
 
-add_member(Q, Node, Timeout) when ?amqqueue_is_quorum(Q) ->
+add_member2(Q, Node, Role, Timeout) when ?amqqueue_is_quorum(Q) ->
     {RaName, _} = amqqueue:get_pid(Q),
     QName = amqqueue:get_name(Q),
     %% TODO parallel calls might crash this, or add a duplicate in quorum_nodes
@@ -1097,7 +1100,7 @@ add_member(Q, Node, Timeout) when ?amqqueue_is_quorum(Q) ->
     Conf = make_ra_conf(Q, ServerId, TickTimeout, SnapshotInterval),
     case ra:start_server(?RA_SYSTEM, Conf) of
         ok ->
-            case ra:add_member(Members, ServerId, Timeout) of
+            case ra:add_member(Members, ServerId, Role, Timeout) of
                 {ok, _, Leader} ->
                     Fun = fun(Q1) ->
                                   Q2 = update_type_state(
@@ -1212,7 +1215,7 @@ grow(Node, VhostSpec, QueueSpec, Strategy) ->
          QName = amqqueue:get_name(Q),
          rabbit_log:info("~ts: adding a new member (replica) on node ~w",
                          [rabbit_misc:rs(QName), Node]),
-         case add_member(Q, Node, ?ADD_MEMBER_TIMEOUT) of
+         case add_member2(Q, Node, active,?ADD_MEMBER_TIMEOUT) of
              ok ->
                  {QName, {ok, Size + 1}};
              {error, Err} ->
