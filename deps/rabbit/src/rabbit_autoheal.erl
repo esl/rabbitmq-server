@@ -338,6 +338,7 @@ winner_finish(Notify) ->
 %% manually restarted, but we can't do much more (apart from stop them again). So let it
 %% continue and notify all the losers to restart.
 wait_for_mnesia_shutdown(AllNodes) ->
+    rabbit_log:info("Waiting for the following nodes to shut down first: ~p", [AllNodes]),
     Monitors = lists:foldl(fun(Node, Monitors0) ->
 				   pmon:monitor({mnesia_sup, Node}, Monitors0)
 			   end, pmon:new(), AllNodes),
