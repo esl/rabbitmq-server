@@ -325,9 +325,6 @@ winner_finish(Notify) ->
     %% If the other node stops between the protocol negotiation and lock
     %% request, the starting node never gets an answer to its lock
     %% request.
-    %%
-    %% To work around the problem, we make sure Mnesia is stopped on all
-    %% losing nodes before sending the "autoheal_safe_to_start" signal.
     wait_for_mnesia_shutdown(Notify),
     [{rabbit_outside_app_process, N} ! autoheal_safe_to_start || N <- Notify],
     _ = send(leader(), {autoheal_finished, node()}),
@@ -338,6 +335,7 @@ winner_finish(Notify) ->
 %% manually restarted, but we can't do much more (apart from stop them again). So let it
 %% continue and notify all the losers to restart.
 wait_for_mnesia_shutdown(AllNodes) ->
+    rabbit_log:info("Waiting for the following nodes to shut down first: ~p", [AllNodes]),
     Monitors = lists:foldl(fun(Node, Monitors0) ->
 				   pmon:monitor({mnesia_sup, Node}, Monitors0)
 			   end, pmon:new(), AllNodes),

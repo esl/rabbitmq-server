@@ -199,7 +199,7 @@ partitions(Nodes) ->
 -spec status([node()]) -> {[{node(), [node()]}], [node()]}.
 
 status(Nodes) ->
-    gen_server:multi_call(Nodes, ?SERVER, status, infinity).
+    gen_server:multi_call(Nodes, ?SERVER, status, 5000).
 
 -spec subscribe(pid()) -> 'ok'.
 
@@ -385,6 +385,7 @@ init([]) ->
     %% happen.
     process_flag(trap_exit, true),
     _ = net_kernel:monitor_nodes(true, [nodedown_reason]),
+    put(partial_partition_checker_pid, undefined),
     {ok, _} = mnesia:subscribe(system),
     %% If the node has been restarted, Mnesia can trigger a system notification
     %% before the monitor subscribes to receive them. To avoid autoheal blocking due to
@@ -473,28 +474,36 @@ handle_cast({check_partial_partition, Node, Rep, NodeGUID, MyGUID, RepGUID},
                            node_guids = GUIDs}) ->
     case lists:member(Node, rabbit_mnesia:cluster_nodes(running)) andalso
         maps:find(Node, GUIDs) =:= {ok, NodeGUID} of
-        true  -> spawn_link( %%[1]
-                   fun () ->
-                           %% Some network partitions are slower to develop into a full
-                           %% network partition. In this case, a small delay can avoid
-                           %% a false positive partial partition. Recommended value is 1000.
-                           timer:sleep(application:get_env(rabbit,
-                               partial_partition_detection_delay, 0)),
-                           case rpc:call(Node, erlang, system_info, [creation]) of
-                               {badrpc, _} -> ok;
-                               NodeGUID ->
-                                   rabbit_log:warning("Received a 'DOWN' message"
-                                                      " from ~tp but still can"
-                                                      " communicate with it ",
-                                                      [Node]),
-                                   cast(Rep, {partial_partition,
-                                                         Node, node(), RepGUID});
-                                _ ->
-                                   rabbit_log:warning("Node ~tp was restarted", [Node]),
-                                   ok
-                           end
-                   end),
-                 ok;
+        true  -> 
+            case get(partial_partition_checker_pid) == undefined of
+                true ->
+                    Pid = spawn_link( %%[1]
+                        fun () ->
+                                rabbit_log:info("Check_partial_partition: Check if ~p is still visible to us.", [Node]),
+                                %% Some network partitions are slower to develop into a full
+                                %% network partition. In this case, a small delay can avoid
+                                %% a false positive partial partition. Recommended value is 1000.
+                                timer:sleep(application:get_env(rabbit,
+                                    partial_partition_detection_delay, 0)),
+                                case rpc:call(Node, erlang, system_info, [creation]) of
+                                    {badrpc, _} -> ok;
+                                    NodeGUID ->
+                                        rabbit_log:warning("Received a 'DOWN' message"
+                                                            " from ~tp but still can"
+                                                            " communicate with it ",
+                                                            [Node]),
+                                        cast(Rep, {partial_partition,
+                                                                Node, node(), RepGUID});
+                                    _ ->
+                                        rabbit_log:warning("Node ~tp was restarted", [Node]),
+                                        ok
+                                end
+                        end),
+                    put(partial_partition_checker_pid, Pid),
+                    ok;
+                false -> 
+                    ok
+            end;
         false -> ok
     end,
     {noreply, State};
@@ -691,6 +700,15 @@ handle_info(ping_up_nodes, State) ->
     [cast(N, keepalive) || N <- alive_nodes() -- [node()]],
     {noreply, ensure_keepalive_timer(State#state{keepalive_timer = undefined})};
 
+handle_info({'EXIT', Pid, normal}, State) ->
+    case get(partial_partition_checker_pid) == Pid of
+        true ->
+            put(partial_partition_checker_pid, undefined);
+        false ->
+            ignore
+    end,
+    {noreply, State};
+    
 handle_info({'EXIT', _, _} = Info, State = #state{autoheal = AState0}) ->
     AState = rabbit_autoheal:process_down(Info, AState0),
     {noreply, State#state{autoheal = AState}};
