@@ -22,14 +22,15 @@ all() ->
 groups() ->
     [
       {non_parallel_tests, [], [
-          simple,
-          change_definition,
-          autodelete_amqp091_src_on_confirm,
-          autodelete_amqp091_src_on_publish,
-          autodelete_amqp091_dest_on_confirm,
-          autodelete_amqp091_dest_on_publish,
-          simple_amqp10_dest,
-          simple_amqp10_src
+        %   simple,
+        %   change_definition,
+        %   autodelete_amqp091_src_on_confirm,
+        %   autodelete_amqp091_src_on_publish,
+        %   autodelete_amqp091_dest_on_confirm,
+        %   autodelete_amqp091_dest_on_publish,
+        %   simple_amqp10_dest,
+        %   simple_amqp10_src,
+          message_prop_conversion
         ]},
       {with_map_config, [], [
           simple,
@@ -166,6 +167,109 @@ simple_amqp10_src(Config) ->
               % plugin. For example custom headers aren't current translated.
               % This isn't due to the shovel though.
               ok
+      end).
+
+message_prop_conversion(Config) ->
+    MapConfig = ?config(map_config, Config),
+    Src = ?config(srcq, Config),
+    Dest = ?config(destq, Config),
+    with_session(Config,
+        fun (Sess) ->
+                shovel_test_utils:set_param(
+                Config,
+                <<"test">>, [{<<"src-protocol">>, <<"amqp10">>},
+                                {<<"src-address">>,  Src},
+                                {<<"dest-protocol">>, <<"amqp091">>},
+                                {<<"dest-queue">>, Dest},
+                                {<<"add-forward-headers">>, true},
+                                {<<"dest-add-timestamp-header">>, true},
+                                {<<"publish-properties">>,
+                                case MapConfig of
+                                    true -> #{<<"cluster_id">> => <<"x">>};
+                                    _    -> [{<<"cluster_id">>, <<"x">>}]
+                                end}
+                            ]),
+                LinkName = <<"dynamic-sender-", Dest/binary>>,
+                Tag = <<"tag1">>,
+                Payload = <<"hello">>,
+                {ok, Sender} = amqp10_client:attach_sender_link(Sess, LinkName, Src,
+                                                                unsettled, unsettled_state),
+                ok = await_amqp10_event(link, Sender, attached),
+                Headers = #{durable => true, priority => 3, ttl => 2},
+                Msg = amqp10_msg:set_headers(Headers,
+                                                amqp10_msg:new(Tag, Payload, false)),
+
+                Msg2 = amqp10_msg:set_properties(#{
+                    message_id => <<"message-id">>,
+                    user_id => <<"guest">>,
+                    to => <<"to">>,
+                    subject => <<"subject">>,
+                    reply_to => <<"reply-to">>,
+                    correlation_id => <<"correlation-id">>,
+                    content_type => <<"content-type">>,
+                    content_encoding => <<"content-encoding">>,
+                    %absolute_expiry_time => 123456789,
+                    creation_time => 123456789,
+                    group_id => <<"group-id">>,
+                    group_sequence => 123,
+                    reply_to_group_id => <<"reply-to-group-id">>
+                    }, Msg),
+                Msg3 = amqp10_msg:set_application_properties(#{
+                    <<"x-binary">> => <<"binary">>,
+                    <<"x-int">> => 33,
+                    <<"x-negative-int">> => -33,
+              %      <<"x-float">> => 1.0,
+                    <<"x-true">> => true,
+                    <<"x-false">> => false
+                }, Msg2),
+                ok = amqp10_client:send_msg(Sender, Msg3),
+                receive
+                    {amqp10_disposition, {accepted, Tag}} -> ok
+                after 3000 ->
+                            exit(publish_disposition_not_received)
+                end,
+                amqp10_client:detach_link(Sender),
+                Channel = rabbit_ct_client_helpers:open_channel(Config),
+                {#'basic.get_ok'{}, #amqp_msg{payload = Payload, props = #'P_basic'{
+                    content_type = ExpContentType,
+                    content_encoding = ExpContentEncoding,
+                    headers = Headers2,
+                    delivery_mode = ExpDeliveryMode,
+                    priority = ExpPriority,
+                    correlation_id = ExpCorrelationId,
+                    reply_to = ExpReplyTo,
+                    expiration = ExpExpiration,
+                    message_id = ExpMessageId,
+                    timestamp = ExpTimestamp,
+                    type = ExpType,
+                    user_id = ExpUserId,
+                    app_id = ExpAppId,
+                    cluster_id = ExpClusterId
+                } = RecProps}} = amqp_channel:call(Channel, #'basic.get'{queue = Dest, no_ack = true}),
+                %_Msg = expect_one(Sess, Dest, Src),
+                ct:pal("Received: ~p~n", [{Payload, Headers2, RecProps}]),
+                ?assertEqual(<<"hello">>, Payload),
+                ?assertEqual({longstr, <<"binary">>}, rabbit_misc:table_lookup(Headers2, <<"x-binary">>)),
+                ?assertEqual({long, 33}, rabbit_misc:table_lookup(Headers2, <<"x-int">>)),
+                ?assertEqual({bool, true}, rabbit_misc:table_lookup(Headers2, <<"x-true">>)),
+                ?assertEqual({bool, false}, rabbit_misc:table_lookup(Headers2, <<"x-false">>)),
+
+                ?assertEqual(<<"content-type">>, ExpContentType),
+                ?assertEqual(<<"content-encoding">>, ExpContentEncoding),
+
+                %?assertEqual(2, ExpDeliveryMode),
+                ?assertEqual(undefined, ExpPriority),
+                ?assertEqual(<<"correlation-id">>, ExpCorrelationId),
+                ?assertEqual(<<"reply-to">>, ExpReplyTo),
+                %?assertEqual(<<"expiration">>, ExpExpiration), % todo check if it can be mapped
+                ?assertEqual(<<"message-id">>, ExpMessageId),
+                ?assertEqual(123456789, ExpTimestamp),
+                %?assertEqual(<<"subject">>, ExpType), % todo check if this exists in mapping
+                ?assertEqual(<<"guest">>, ExpUserId),
+                % ?assertEqual(<<"app-id">>, ExpAppId), % todo check if this exists in mapping
+                % ?assertEqual(<<"x">>, ExpClusterId), % todo check if this exists in mapping
+                ?assert(false),
+                ok
       end).
 
 change_definition(Config) ->

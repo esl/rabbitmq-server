@@ -172,13 +172,55 @@ dest_endpoint(#{shovel_type := static}) ->
 dest_endpoint(#{shovel_type := dynamic,
                 dest := #{target_address := Addr}}) ->
     [{dest_address, Addr}].
-
+    % props_from_map(Map) ->
+    %     #'P_basic'{content_type = maps:get(content_type, Map, undefined),
+    %                content_encoding = maps:get(content_encoding, Map, undefined),
+    %                headers = maps:get(headers, Map, undefined),
+    %                delivery_mode = maps:get(delivery_mode, Map, undefined),
+    %                priority = maps:get(priority, Map, undefined),
+    %                correlation_id = maps:get(correlation_id, Map, undefined),
+    %                reply_to = maps:get(reply_to, Map, undefined),
+    %                expiration = maps:get(expiration, Map, undefined),
+    %                message_id = maps:get(message_id, Map, undefined),
+    %                timestamp = maps:get(timestamp, Map, undefined),
+    %                type = maps:get(type, Map, undefined),
+    %                user_id = maps:get(user_id, Map, undefined),
+    %                app_id = maps:get(app_id, Map, undefined),
+    %                cluster_id = maps:get(cluster_id, Map, undefined)}.
 -spec handle_source(Msg :: any(), state()) ->
     not_handled | state() | {stop, any()}.
 handle_source({amqp10_msg, _LinkRef, Msg}, State) ->
     Tag = amqp10_msg:delivery_id(Msg),
     Payload = amqp10_msg:body_bin(Msg),
-    rabbit_shovel_behaviour:forward(Tag, #{}, Payload, State);
+    io:format("Received msg: ~p~n", [Msg]),
+    AppProps = amqp10_msg:application_properties(Msg),
+    AppProps091Headers = lists:filtermap(fun({K, V}) ->
+                                         case to_amqp091_compatible_value(K, V) of
+                                             undefined ->
+                                                 false;
+                                             Value ->
+                                                 {true, Value}
+                                         end
+                                 end, maps:to_list(AppProps)),
+    InProps = amqp10_msg:properties(Msg),
+    io:format("Received props: ~p~n", [InProps]),
+    Props = #{
+        headers => AppProps091Headers,
+        content_type => maps:get(content_type, InProps, undefined),
+        content_encoding => maps:get(content_encoding, InProps, undefined),
+        % delivery_mode => maps:get(delivery_mode, InProps, undefined), % no prop
+        % priority => maps:get(priority, InProps, undefined), % no prop
+        correlation_id => maps:get(correlation_id, InProps, undefined),
+        reply_to => maps:get(reply_to, InProps, undefined),
+        %expiration => maps:get(expiration, InProps, undefined), % todo chekc if this is thesame as AMQP 1.0 absolute_expiry_time
+        message_id => maps:get(message_id, InProps, undefined),
+        timestamp => maps:get(creation_time, InProps, undefined), % todo chekc if this is the same as amqp 1.0
+        %type => maps:get(type, InProps, undefined), % todo chekc amqp 09 what is this
+        user_id => maps:get(user_id, InProps, undefined)
+        %app_id => maps:get(app_id, InProps, undefined), todo check in amqp 1.0
+        % cluster_id => maps:get(cluster_id, InProps, undefined) todo check in amqp 1.0
+    },
+    rabbit_shovel_behaviour:forward(Tag, Props, Payload, State);
 handle_source({amqp10_event, {connection, Conn, opened}},
               State = #{source := #{current := #{conn := Conn}}}) ->
     State;
@@ -440,3 +482,14 @@ is_amqp10_compat(T) ->
     %% TODO: not all lists are compatible
     is_list(T) orelse
     is_boolean(T).
+
+to_amqp091_compatible_value(Key, Value) when is_binary(Value) ->
+    {Key, longstr, Value};
+to_amqp091_compatible_value(Key, Value) when is_integer(Value) ->
+    {Key, long, Value};
+to_amqp091_compatible_value(Key, true) ->
+    {Key, bool, true};
+to_amqp091_compatible_value(Key, false) ->
+    {Key, bool, false};
+to_amqp091_compatible_value(_Key, _Value) ->
+    undefined.
