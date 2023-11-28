@@ -172,54 +172,12 @@ dest_endpoint(#{shovel_type := static}) ->
 dest_endpoint(#{shovel_type := dynamic,
                 dest := #{target_address := Addr}}) ->
     [{dest_address, Addr}].
-    % props_from_map(Map) ->
-    %     #'P_basic'{content_type = maps:get(content_type, Map, undefined),
-    %                content_encoding = maps:get(content_encoding, Map, undefined),
-    %                headers = maps:get(headers, Map, undefined),
-    %                delivery_mode = maps:get(delivery_mode, Map, undefined),
-    %                priority = maps:get(priority, Map, undefined),
-    %                correlation_id = maps:get(correlation_id, Map, undefined),
-    %                reply_to = maps:get(reply_to, Map, undefined),
-    %                expiration = maps:get(expiration, Map, undefined),
-    %                message_id = maps:get(message_id, Map, undefined),
-    %                timestamp = maps:get(timestamp, Map, undefined),
-    %                type = maps:get(type, Map, undefined),
-    %                user_id = maps:get(user_id, Map, undefined),
-    %                app_id = maps:get(app_id, Map, undefined),
-    %                cluster_id = maps:get(cluster_id, Map, undefined)}.
 -spec handle_source(Msg :: any(), state()) ->
     not_handled | state() | {stop, any()}.
 handle_source({amqp10_msg, _LinkRef, Msg}, State) ->
     Tag = amqp10_msg:delivery_id(Msg),
     Payload = amqp10_msg:body_bin(Msg),
-    io:format("Received msg: ~p~n", [Msg]),
-    AppProps = amqp10_msg:application_properties(Msg),
-    AppProps091Headers = lists:filtermap(fun({K, V}) ->
-                                         case to_amqp091_compatible_value(K, V) of
-                                             undefined ->
-                                                 false;
-                                             Value ->
-                                                 {true, Value}
-                                         end
-                                 end, maps:to_list(AppProps)),
-    InProps = amqp10_msg:properties(Msg),
-    io:format("Received props: ~p~n", [InProps]),
-    Props = #{
-        headers => AppProps091Headers,
-        content_type => maps:get(content_type, InProps, undefined),
-        content_encoding => maps:get(content_encoding, InProps, undefined),
-        % delivery_mode => maps:get(delivery_mode, InProps, undefined), % no prop
-        % priority => maps:get(priority, InProps, undefined), % no prop
-        correlation_id => maps:get(correlation_id, InProps, undefined),
-        reply_to => maps:get(reply_to, InProps, undefined),
-        %expiration => maps:get(expiration, InProps, undefined), % todo chekc if this is thesame as AMQP 1.0 absolute_expiry_time
-        message_id => maps:get(message_id, InProps, undefined),
-        timestamp => maps:get(creation_time, InProps, undefined), % todo chekc if this is the same as amqp 1.0
-        %type => maps:get(type, InProps, undefined), % todo chekc amqp 09 what is this
-        user_id => maps:get(user_id, InProps, undefined)
-        %app_id => maps:get(app_id, InProps, undefined), todo check in amqp 1.0
-        % cluster_id => maps:get(cluster_id, InProps, undefined) todo check in amqp 1.0
-    },
+    Props = props_to_map(Msg),
     rabbit_shovel_behaviour:forward(Tag, Props, Payload, State);
 handle_source({amqp10_event, {connection, Conn, opened}},
               State = #{source := #{current := #{conn := Conn}}}) ->
@@ -432,6 +390,8 @@ set_message_properties(Props, Msg) ->
                 #{content_encoding => to_binary(Ct)}, M);
          (delivery_mode, 2, M) ->
               amqp10_msg:set_headers(#{durable => true}, M);
+        (priority, P, M) when is_integer(P) ->
+                amqp10_msg:set_headers(#{priority => P}, M);
          (correlation_id, Ct, M) ->
               amqp10_msg:set_properties(#{correlation_id => to_binary(Ct)}, M);
          (reply_to, Ct, M) ->
@@ -439,7 +399,7 @@ set_message_properties(Props, Msg) ->
          (message_id, Ct, M) ->
               amqp10_msg:set_properties(#{message_id => to_binary(Ct)}, M);
          (timestamp, Ct, M) ->
-              amqp10_msg:set_properties(#{creation_time => Ct}, M);
+              amqp10_msg:set_properties(#{creation_time => Ct * 1000}, M);
          (user_id, Ct, M) ->
               amqp10_msg:set_properties(#{user_id => Ct}, M);
          (headers, Headers0, M) when is_list(Headers0) ->
@@ -493,3 +453,54 @@ to_amqp091_compatible_value(Key, false) ->
     {Key, bool, false};
 to_amqp091_compatible_value(_Key, _Value) ->
     undefined.
+
+delivery_mode(Headers) ->
+    case maps:get(durable, Headers, undefined) of
+        undefined -> undefined;
+        true -> 2;
+        false -> 1
+    end.
+
+timestamp_10_to_091(undefined) ->
+    undefined;
+timestamp_10_to_091(T) ->
+    trunc(T / 1000).
+
+
+ttl(T) when is_integer(T) ->
+    erlang:integer_to_binary(T);
+ttl(_T)  -> undefined.
+
+conversion_enabled() ->
+    application:get_env(rabbitmq_shovel, convert_amqp10_props_to_amqp091, true).
+
+props_to_map(Msg) ->
+    case conversion_enabled() of
+        true ->
+            AppProps = amqp10_msg:application_properties(Msg),
+            AppProps091Headers = lists:filtermap(fun({K, V}) ->
+                                                case to_amqp091_compatible_value(K, V) of
+                                                    undefined ->
+                                                        false;
+                                                    Value ->
+                                                        {true, Value}
+                                                end
+                                        end, maps:to_list(AppProps)),
+            InProps = amqp10_msg:properties(Msg),
+            Headers = amqp10_msg:headers(Msg),
+            #{
+                headers => AppProps091Headers,
+                content_type => maps:get(content_type, InProps, undefined),
+                content_encoding => maps:get(content_encoding, InProps, undefined),
+                delivery_mode => delivery_mode(Headers),
+                priority => maps:get(priority, Headers, undefined),
+                correlation_id => maps:get(correlation_id, InProps, undefined),
+                reply_to => maps:get(reply_to, InProps, undefined),
+                expiration => ttl(maps:get(ttl, Headers, undefined)),
+                message_id => maps:get(message_id, InProps, undefined),
+                timestamp => timestamp_10_to_091(maps:get(creation_time, InProps, undefined)),
+                user_id => maps:get(user_id, InProps, undefined)
+            };
+        false ->
+            #{}
+    end.

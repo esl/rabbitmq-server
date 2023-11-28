@@ -195,10 +195,11 @@ message_prop_conversion(Config) ->
                 {ok, Sender} = amqp10_client:attach_sender_link(Sess, LinkName, Src,
                                                                 unsettled, unsettled_state),
                 ok = await_amqp10_event(link, Sender, attached),
-                Headers = #{durable => true, priority => 3, ttl => 2},
+                Headers = #{durable => true, priority => 3, ttl => 180000},
                 Msg = amqp10_msg:set_headers(Headers,
                                                 amqp10_msg:new(Tag, Payload, false)),
-
+                Msg = amqp10_msg:set_message_annotations(Props, Arg2),
+                Msg = amqp10_msg:set_message_annotations(Props, Arg2),
                 Msg2 = amqp10_msg:set_properties(#{
                     message_id => <<"message-id">>,
                     user_id => <<"guest">>,
@@ -261,7 +262,7 @@ message_prop_conversion(Config) ->
                 ?assertEqual(undefined, ExpPriority),
                 ?assertEqual(<<"correlation-id">>, ExpCorrelationId),
                 ?assertEqual(<<"reply-to">>, ExpReplyTo),
-                %?assertEqual(<<"expiration">>, ExpExpiration), % todo check if it can be mapped
+                ?assertEqual(180000, ExpExpiration), % todo check if it can be mapped
                 ?assertEqual(<<"message-id">>, ExpMessageId),
                 ?assertEqual(123456789, ExpTimestamp),
                 %?assertEqual(<<"subject">>, ExpType), % todo check if this exists in mapping
