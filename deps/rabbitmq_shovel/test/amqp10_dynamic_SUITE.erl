@@ -22,14 +22,14 @@ all() ->
 groups() ->
     [
       {non_parallel_tests, [], [
-        %   simple,
-        %   change_definition,
-        %   autodelete_amqp091_src_on_confirm,
-        %   autodelete_amqp091_src_on_publish,
-        %   autodelete_amqp091_dest_on_confirm,
-        %   autodelete_amqp091_dest_on_publish,
-        %   simple_amqp10_dest,
-        %   simple_amqp10_src,
+          simple,
+          change_definition,
+          autodelete_amqp091_src_on_confirm,
+          autodelete_amqp091_src_on_publish,
+          autodelete_amqp091_dest_on_confirm,
+          autodelete_amqp091_dest_on_publish,
+          simple_amqp10_dest,
+          simple_amqp10_src,
           message_prop_conversion
         ]},
       {with_map_config, [], [
@@ -173,6 +173,11 @@ message_prop_conversion(Config) ->
     MapConfig = ?config(map_config, Config),
     Src = ?config(srcq, Config),
     Dest = ?config(destq, Config),
+    ok = rabbit_ct_broker_helpers:rpc(Config,
+                                      0,
+                                      application,
+                                      set_env,
+                                      [rabbitmq_shovel, convert_amqp10_props_to_amqp091, true]),
     with_session(Config,
         fun (Sess) ->
                 shovel_test_utils:set_param(
@@ -191,15 +196,13 @@ message_prop_conversion(Config) ->
                             ]),
                 LinkName = <<"dynamic-sender-", Dest/binary>>,
                 Tag = <<"tag1">>,
-                Payload = <<"hello">>,
+                Payload = <<"payload">>,
                 {ok, Sender} = amqp10_client:attach_sender_link(Sess, LinkName, Src,
                                                                 unsettled, unsettled_state),
                 ok = await_amqp10_event(link, Sender, attached),
                 Headers = #{durable => true, priority => 3, ttl => 180000},
                 Msg = amqp10_msg:set_headers(Headers,
                                                 amqp10_msg:new(Tag, Payload, false)),
-                Msg = amqp10_msg:set_message_annotations(Props, Arg2),
-                Msg = amqp10_msg:set_message_annotations(Props, Arg2),
                 Msg2 = amqp10_msg:set_properties(#{
                     message_id => <<"message-id">>,
                     user_id => <<"guest">>,
@@ -219,7 +222,7 @@ message_prop_conversion(Config) ->
                     <<"x-binary">> => <<"binary">>,
                     <<"x-int">> => 33,
                     <<"x-negative-int">> => -33,
-              %      <<"x-float">> => 1.0,
+                    <<"x-float">> => 1.3,
                     <<"x-true">> => true,
                     <<"x-false">> => false
                 }, Msg2),
@@ -232,46 +235,49 @@ message_prop_conversion(Config) ->
                 amqp10_client:detach_link(Sender),
                 Channel = rabbit_ct_client_helpers:open_channel(Config),
                 {#'basic.get_ok'{}, #amqp_msg{payload = Payload, props = #'P_basic'{
-                    content_type = ExpContentType,
-                    content_encoding = ExpContentEncoding,
+                    content_type = ReceivedContentType,
+                    content_encoding = ReceivedContentEncoding,
                     headers = Headers2,
-                    delivery_mode = ExpDeliveryMode,
-                    priority = ExpPriority,
-                    correlation_id = ExpCorrelationId,
-                    reply_to = ExpReplyTo,
-                    expiration = ExpExpiration,
-                    message_id = ExpMessageId,
-                    timestamp = ExpTimestamp,
-                    type = ExpType,
-                    user_id = ExpUserId,
-                    app_id = ExpAppId,
-                    cluster_id = ExpClusterId
-                } = RecProps}} = amqp_channel:call(Channel, #'basic.get'{queue = Dest, no_ack = true}),
-                %_Msg = expect_one(Sess, Dest, Src),
-                ct:pal("Received: ~p~n", [{Payload, Headers2, RecProps}]),
-                ?assertEqual(<<"hello">>, Payload),
+                    delivery_mode = ReceivedDeliveryMode,
+                    priority = ReceivedPriority,
+                    correlation_id = ReceivedCorrelationId,
+                    reply_to = ReceivedReplyTo,
+                    expiration = ReceivedExpiration,
+                    message_id = ReceivedMessageId,
+                    timestamp = ReceivedTimestamp,
+                    type = _ReceivedType,
+                    user_id = ReceivedUserId,
+                    app_id = _ReceivedAppId,
+                    cluster_id = _ReceivedClusterId
+                }}} = amqp_channel:call(Channel, #'basic.get'{queue = Dest, no_ack = true}),
+
+                ?assertEqual(<<"payload">>, Payload),
+                ?assertEqual(2, ReceivedDeliveryMode),
                 ?assertEqual({longstr, <<"binary">>}, rabbit_misc:table_lookup(Headers2, <<"x-binary">>)),
                 ?assertEqual({long, 33}, rabbit_misc:table_lookup(Headers2, <<"x-int">>)),
+                ?assertEqual({long, -33}, rabbit_misc:table_lookup(Headers2, <<"x-negative-int">>)),
+                ?assertEqual({double, 1.3}, rabbit_misc:table_lookup(Headers2, <<"x-float">>)),
                 ?assertEqual({bool, true}, rabbit_misc:table_lookup(Headers2, <<"x-true">>)),
                 ?assertEqual({bool, false}, rabbit_misc:table_lookup(Headers2, <<"x-false">>)),
 
-                ?assertEqual(<<"content-type">>, ExpContentType),
-                ?assertEqual(<<"content-encoding">>, ExpContentEncoding),
+                ?assertEqual(<<"content-type">>, ReceivedContentType),
+                ?assertEqual(<<"content-encoding">>, ReceivedContentEncoding),
 
-                %?assertEqual(2, ExpDeliveryMode),
-                ?assertEqual(undefined, ExpPriority),
-                ?assertEqual(<<"correlation-id">>, ExpCorrelationId),
-                ?assertEqual(<<"reply-to">>, ExpReplyTo),
-                ?assertEqual(180000, ExpExpiration), % todo check if it can be mapped
-                ?assertEqual(<<"message-id">>, ExpMessageId),
-                ?assertEqual(123456789, ExpTimestamp),
-                %?assertEqual(<<"subject">>, ExpType), % todo check if this exists in mapping
-                ?assertEqual(<<"guest">>, ExpUserId),
-                % ?assertEqual(<<"app-id">>, ExpAppId), % todo check if this exists in mapping
-                % ?assertEqual(<<"x">>, ExpClusterId), % todo check if this exists in mapping
-                ?assert(false),
+                ?assertEqual(3, ReceivedPriority),
+                ?assertEqual(<<"correlation-id">>, ReceivedCorrelationId),
+                ?assertEqual(<<"reply-to">>, ReceivedReplyTo),
+                ?assertEqual(<<"180000">>, ReceivedExpiration),
+                ?assertEqual(<<"message-id">>, ReceivedMessageId),
+                ?assertEqual(123456, ReceivedTimestamp), % timestamp is divided by 1 000
+                ?assertEqual(<<"guest">>, ReceivedUserId),
                 ok
-      end).
+      end),
+      ok = rabbit_ct_broker_helpers:rpc(Config,
+                                        0,
+                                        application,
+                                        set_env,
+                                        [rabbitmq_shovel, convert_amqp10_props_to_amqp091, false]).
+
 
 change_definition(Config) ->
     Src = ?config(srcq, Config),

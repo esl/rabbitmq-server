@@ -398,9 +398,9 @@ set_message_properties(Props, Msg) ->
               amqp10_msg:set_properties(#{reply_to => to_binary(Ct)}, M);
          (message_id, Ct, M) ->
               amqp10_msg:set_properties(#{message_id => to_binary(Ct)}, M);
-         (timestamp, Ct, M) ->
+         (timestamp, Ct, M) when is_integer(Ct) ->
               amqp10_msg:set_properties(#{creation_time => Ct * 1000}, M);
-         (user_id, Ct, M) ->
+         (user_id, Ct, M) when Ct =/= undefined ->
               amqp10_msg:set_properties(#{user_id => Ct}, M);
          (headers, Headers0, M) when is_list(Headers0) ->
               %% AMPQ 0.9.1 are added as applicatin properties
@@ -447,6 +447,8 @@ to_amqp091_compatible_value(Key, Value) when is_binary(Value) ->
     {Key, longstr, Value};
 to_amqp091_compatible_value(Key, Value) when is_integer(Value) ->
     {Key, long, Value};
+to_amqp091_compatible_value(Key, Value) when is_float(Value) ->
+    {Key, double, Value};
 to_amqp091_compatible_value(Key, true) ->
     {Key, bool, true};
 to_amqp091_compatible_value(Key, false) ->
@@ -472,7 +474,7 @@ ttl(T) when is_integer(T) ->
 ttl(_T)  -> undefined.
 
 conversion_enabled() ->
-    application:get_env(rabbitmq_shovel, convert_amqp10_props_to_amqp091, true).
+    application:get_env(rabbitmq_shovel, convert_amqp10_props_to_amqp091, false).
 
 props_to_map(Msg) ->
     case conversion_enabled() of
@@ -501,6 +503,6 @@ props_to_map(Msg) ->
                 timestamp => timestamp_10_to_091(maps:get(creation_time, InProps, undefined)),
                 user_id => maps:get(user_id, InProps, undefined)
             };
-        false ->
+        _ ->
             #{}
     end.

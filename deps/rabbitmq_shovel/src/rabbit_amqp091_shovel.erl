@@ -206,7 +206,6 @@ do_forward(IncomingTag, Props, Payload,
     Method1 = apply(Mf, Ff, Argsf ++ [SrcUri, DstUri, Method]),
     Msg1 = #amqp_msg{props = apply(M, F, Args ++ [SrcUri, DstUri, props_from_map(Props)]),
                      payload = Payload},
-    io:format("Do forward: ~p~n", [Msg1]),
     publish(IncomingTag, Method1, Msg1, State0).
 
 props_from_map(Map) ->

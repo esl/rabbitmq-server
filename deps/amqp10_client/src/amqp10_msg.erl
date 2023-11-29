@@ -325,7 +325,7 @@ set_properties(Props, #amqp10_msg{properties = Current} = Msg) ->
     P = maps:fold(fun(message_id, V, Acc) when is_binary(V) ->
                           % message_id can be any type but we restrict it here
                           Acc#'v1_0.properties'{message_id = utf8(V)};
-                     (user_id, V, Acc) ->
+                     (user_id, V, Acc) when is_binary(V) orelse is_list(V) ->
                           Acc#'v1_0.properties'{user_id = binary(V)};
                      (to, V, Acc) ->
                           Acc#'v1_0.properties'{to = utf8(V)};
@@ -453,7 +453,8 @@ utf8(V) -> amqp10_client_types:utf8(V).
 sym(B) when is_list(B) -> {symbol, list_to_binary(B)};
 sym(B) when is_binary(B) -> {symbol, B}.
 uint(B) -> {uint, B}.
-binary(B) when is_binary(B) -> {binary, B}.
+binary(B) when is_binary(B) -> {binary, B};
+binary(B) when is_list(B) -> {binary, erlang:list_to_binary(B)}.
 
 has_value(undefined) -> false;
 has_value(_) -> true.
