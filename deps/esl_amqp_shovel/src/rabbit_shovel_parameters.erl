@@ -5,11 +5,11 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_parameters).
+-module(esl_amqp_shovel_parameters).
 -behaviour(rabbit_runtime_parameter).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -export([validate/5, notify/5, notify_clear/4]).
 -export([register/0, unregister/0, parse/3]).
@@ -27,18 +27,18 @@
 
 -rabbit_boot_step({?MODULE,
                    [{description, "shovel parameters"},
-                    {mfa, {rabbit_shovel_parameters, register, []}},
+                    {mfa, {esl_amqp_shovel_parameters, register, []}},
                     {cleanup, {?MODULE, unregister, []}},
                     {requires, rabbit_registry},
                     {enables, recovery}]}).
 
 register() ->
-    rabbit_registry:register(runtime_parameter, <<"shovel">>, ?MODULE).
+    rabbit_registry:register(runtime_parameter, <<"esl-shovel">>, ?MODULE).
 
 unregister() ->
-    rabbit_registry:unregister(runtime_parameter, <<"shovel">>).
+    rabbit_registry:unregister(runtime_parameter, <<"esl-shovel">>).
 
-validate(_VHost, <<"shovel">>, Name, Def0, User) ->
+validate(_VHost, <<"esl-shovel">>, Name, Def0, User) ->
     Def = rabbit_data_coercion:to_proplist(Def0),
     Validations =
         shovel_validation()
@@ -58,11 +58,11 @@ pget2(K1, K2, Defs) -> case {pget(K1, Defs), pget(K2, Defs)} of
                            {_,         _}         -> both
                        end.
 
-notify(VHost, <<"shovel">>, Name, Definition, _Username) ->
-    rabbit_shovel_dyn_worker_sup_sup:adjust({VHost, Name}, Definition).
+notify(VHost, <<"esl-shovel">>, Name, Definition, _Username) ->
+    esl_amqp_shovel_dyn_worker_sup_sup:adjust({VHost, Name}, Definition).
 
-notify_clear(VHost, <<"shovel">>, Name, _Username) ->
-    rabbit_shovel_dyn_worker_sup_sup:stop_child({VHost, Name}).
+notify_clear(VHost, <<"esl-shovel">>, Name, _Username) ->
+    esl_amqp_shovel_dyn_worker_sup_sup:stop_child({VHost, Name}).
 
 %%----------------------------------------------------------------------------
 
@@ -379,13 +379,13 @@ props_fun(Table0, Table2, SetProps, AddHeaders, SourceHeaders, AddTimestampHeade
           SrcURI, DestURI, P0) ->
     P  = set_properties(P0, SetProps),
     P1 = case AddHeaders of
-             true -> rabbit_shovel_util:update_headers(
+             true -> esl_amqp_shovel_util:update_headers(
                        Table0, SourceHeaders ++ Table2,
                        SrcURI, DestURI, P);
              false -> P
          end,
     case AddTimestampHeader of
-        true  -> rabbit_shovel_util:add_timestamp_header(P1);
+        true  -> esl_amqp_shovel_util:add_timestamp_header(P1);
         false -> P1
     end.
 

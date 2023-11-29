@@ -25,7 +25,7 @@ set_param_nowait(Config, Name, Value) ->
     Uri = make_uri(Config),
     ok = rabbit_ct_broker_helpers:rpc(Config, 0,
       rabbit_runtime_parameters, set, [
-        <<"/">>, <<"shovel">>, Name, [{<<"src-uri">>,  Uri},
+        <<"/">>, <<"esl-shovel">>, Name, [{<<"src-uri">>,  Uri},
                                       {<<"dest-uri">>, [Uri]} |
                                       Value], none]).
 
@@ -37,12 +37,12 @@ await_shovel1(_Config, Name) ->
     await(fun () -> lists:member(Name, shovels_from_status()) end).
 
 shovels_from_status() ->
-    S = rabbit_shovel_status:status(),
+    S = esl_amqp_shovel_status:status(),
     [N || {{<<"/">>, N}, dynamic, {running, _}, _} <- S].
 
 get_shovel_status(Config, Name) ->
     S = rabbit_ct_broker_helpers:rpc(
-          Config, 0, rabbit_shovel_status, lookup, [{<<"/">>, Name}]),
+          Config, 0, esl_amqp_shovel_status, lookup, [{<<"/">>, Name}]),
     case S of
         not_found ->
             not_found;
@@ -71,4 +71,4 @@ await(Pred, Timeout) ->
 
 clear_param(Config, Name) ->
     rabbit_ct_broker_helpers:rpc(Config, 0,
-      rabbit_runtime_parameters, clear, [<<"/">>, <<"shovel">>, Name, <<"acting-user">>]).
+      rabbit_runtime_parameters, clear, [<<"/">>, <<"esl-shovel">>, Name, <<"acting-user">>]).

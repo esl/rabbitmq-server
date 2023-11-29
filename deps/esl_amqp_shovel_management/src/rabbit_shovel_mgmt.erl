@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_mgmt).
+-module(esl_amqp_shovel_mgmt).
 
 -behaviour(rabbit_mgmt_extension).
 
@@ -17,14 +17,14 @@
 
 -include_lib("rabbitmq_management_agent/include/rabbit_mgmt_records.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel_mgmt.hrl").
+-include("esl_amqp_shovel_mgmt.hrl").
 
-dispatcher() -> [{"/shovels",        ?MODULE, []},
-                 {"/shovels/:vhost", ?MODULE, []},
-                 {"/shovels/vhost/:vhost/:name", ?MODULE, []},
-                 {"/shovels/vhost/:vhost/:name/restart", ?MODULE, []}].
+dispatcher() -> [{"/esl-shovels",        ?MODULE, []},
+                 {"/esl-shovels/:vhost", ?MODULE, []},
+                 {"/esl-shovels/vhost/:vhost/:name", ?MODULE, []},
+                 {"/esl-shovels/vhost/:vhost/:name/restart", ?MODULE, []}].
 
-web_ui()     -> [{javascript, <<"shovel.js">>}].
+web_ui()     -> [{javascript, <<"esl-shovel.js">>}].
 
 %%--------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ resource_exists(ReqData, Context) ->
 
 to_json(ReqData, Context) ->
     rabbit_mgmt_util:reply_list(
-      filter_vhost_req(rabbit_shovel_mgmt_util:status(ReqData, Context), ReqData), ReqData, Context).
+      filter_vhost_req(esl_amqp_shovel_mgmt_util:status(ReqData, Context), ReqData), ReqData, Context).
 
 is_authorized(ReqData, Context) ->
     rabbit_mgmt_util:is_authorized_monitor(ReqData, Context).
@@ -79,7 +79,7 @@ delete_resource(ReqData, #context{user = #user{username = Username}}=Context) ->
                             case is_restart(ReqData) of
                                 true ->
                                     rabbit_log:info("Asked to restart shovel '~ts' in vhost '~ts' on node '~s'", [Name, VHost, Node]),
-                                    try erpc:call(Node, rabbit_shovel_util, restart_shovel, [VHost, Name], ?SHOVEL_CALLS_TIMEOUT_MS) of
+                                    try erpc:call(Node, esl_amqp_shovel_util, restart_shovel, [VHost, Name], ?SHOVEL_CALLS_TIMEOUT_MS) of
                                         ok -> true;
                                         {error, not_found} ->
                                             rabbit_log:error("Could not find shovel data for shovel '~s' in vhost: '~s'", [Name, VHost]),
@@ -92,7 +92,7 @@ delete_resource(ReqData, #context{user = #user{username = Username}}=Context) ->
 
                                 _ ->
                                     rabbit_log:info("Asked to delete shovel '~ts' in vhost '~ts' on node '~s'", [Name, VHost, Node]),
-                                    try erpc:call(Node, rabbit_shovel_util, delete_shovel, [VHost, Name, Username], ?SHOVEL_CALLS_TIMEOUT_MS) of
+                                    try erpc:call(Node, esl_amqp_shovel_util, delete_shovel, [VHost, Name, Username], ?SHOVEL_CALLS_TIMEOUT_MS) of
                                         ok -> true;
                                         {error, not_found} ->
                                             rabbit_log:error("Could not find shovel data for shovel '~s' in vhost: '~s'", [Name, VHost]),
@@ -125,7 +125,7 @@ filter_vhost_req(List, ReqData) ->
     end.
 
 get_shovel_node(VHost, Name, ReqData, Context) ->
-    Shovels = rabbit_shovel_mgmt_util:status(ReqData, Context),
+    Shovels = esl_amqp_shovel_mgmt_util:status(ReqData, Context),
     Match   = find_matching_shovel(VHost, Name, Shovels),
     case Match of
         undefined -> undefined;
@@ -134,7 +134,7 @@ get_shovel_node(VHost, Name, ReqData, Context) ->
             Node
     end.
 
-%% This is similar to rabbit_shovel_status:find_matching_shovel/3
+%% This is similar to esl_amqp_shovel_status:find_matching_shovel/3
 %% but operates on a different input (a proplist of Shovel attributes)
 -spec find_matching_shovel(VHost :: vhost:name(),
                            Name :: binary(),

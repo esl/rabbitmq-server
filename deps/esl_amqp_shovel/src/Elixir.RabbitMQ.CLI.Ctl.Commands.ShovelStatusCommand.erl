@@ -7,7 +7,7 @@
 
 -module('Elixir.RabbitMQ.CLI.Ctl.Commands.ShovelStatusCommand').
 
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -behaviour('Elixir.RabbitMQ.CLI.CommandBehaviour').
 
@@ -42,7 +42,7 @@ description() ->
     <<"Displays status of Shovel on a node">>.
 
 help_section() ->
-    {plugin, shovel}.
+    {plugin, esl_shovel}.
 
 flags() ->
     [].
@@ -61,7 +61,7 @@ banner(_, #{node := Node}) ->
                              atom_to_binary(Node, utf8)]).
 
 run(_Args, #{node := Node}) ->
-    case rabbit_misc:rpc_call(Node, rabbit_shovel_status, status, []) of
+    case rabbit_misc:rpc_call(Node, esl_amqp_shovel_status, status, []) of
         {badrpc, _} = Error ->
             Error;
         Status ->

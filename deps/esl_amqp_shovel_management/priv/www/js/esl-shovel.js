@@ -1,20 +1,20 @@
 dispatcher_add(function(sammy) {
-    sammy.get('#/shovels', function() {
+    sammy.get('#/esl-shovels', function() {
             render({'shovels': {path:    '/shovels',
                                 options: {vhost:true}}},
-                    'shovels', '#/shovels');
+                    'shovels', '#/esl-shovels');
         });
-    sammy.get('#/dynamic-shovels', function() {
+    sammy.get('#/esl-dynamic-shovels', function() {
             render({'shovels': {path:   '/parameters/shovel',
                             options:{vhost:true}},
                     'vhosts': '/vhosts'},
-                   'dynamic-shovels', '#/dynamic-shovels');
+                   'dynamic-shovels', '#/esl-dynamic-shovels');
         });
-    sammy.get('#/dynamic-shovels/:vhost/:id', function() {
+    sammy.get('#/esl-dynamic-shovels/:vhost/:id', function() {
             render({'shovel': '/parameters/shovel/' + esc(this.params['vhost']) + '/' + esc(this.params['id'])},
-                   'dynamic-shovel', '#/dynamic-shovels');
+                   'dynamic-shovel', '#/esl-dynamic-shovels');
         });
-    sammy.put('#/shovel-parameters-move-messages', function() {
+    sammy.put('#/esl-shovel-parameters-move-messages', function() {
             var num_keys = ['src-prefetch-count', 'reconnect-delay'];
             var bool_keys = ['dest-add-forward-headers'];
             var arrayable_keys = ['src-uri', 'dest-uri'];
@@ -32,7 +32,7 @@ dispatcher_add(function(sammy) {
             }
             return false;
         });
-    sammy.put('#/shovel-parameters', function() {
+    sammy.put('#/esl-shovel-parameters', function() {
             // patch up the protocol selectors
             var src_proto = this.params['src-protocol-selector'];
             this.params['src-protocol'] = src_proto.substr(0, src_proto.indexOf('-'));
@@ -83,15 +83,15 @@ dispatcher_add(function(sammy) {
             }
             return false;
         });
-    sammy.del('#/shovel-parameters', function() {
+    sammy.del('#/esl-shovel-parameters', function() {
             if (sync_delete(this, '/shovels/vhost/:vhost/:name')) {
-                go_to('#/dynamic-shovels');
+                go_to('#/esl-dynamic-shovels');
             } else {
                 show_popup('warn', 'Shovel could not be deleted');
                 return false;
             }
         });
-    sammy.del("#/shovel-restart-link", function(){
+    sammy.del("#/esl-shovel-restart-link", function(){
             if (sync_delete(this, '/shovels/vhost/:vhost/:name/restart')) {
                 update();
             } else {
@@ -102,8 +102,8 @@ dispatcher_add(function(sammy) {
 });
 
 
-NAVIGATION['Admin'][0]['Shovel Status'] = ['#/shovels', "monitoring"];
-NAVIGATION['Admin'][0]['Shovel Management'] = ['#/dynamic-shovels', "policymaker"];
+NAVIGATION['Admin'][0]['Erlang Solutions Shovel Status'] = ['#/esl-shovels', "monitoring"];
+NAVIGATION['Admin'][0]['Erlang Solutions Shovel Management'] = ['#/esl-dynamic-shovels', "policymaker"];
 
 HELP['shovel-uri'] =
     'Both source and destination can be either a local or remote broker. See the "URI examples" pane for examples of how to construct URIs. If connecting to a cluster, you can enter several URIs here separated by spaces.';
@@ -167,7 +167,7 @@ function rekey_params(sammy, func) {
     }
 }
 function link_shovel(vhost, name) {
-    return _link_to(name, '#/dynamic-shovels/' + esc(vhost) + '/' + esc(name));
+    return _link_to(name, '#/esl-dynamic-shovels/' + esc(vhost) + '/' + esc(name));
 }
 
 function fmt_shovel_endpoint(prefix, shovel) {

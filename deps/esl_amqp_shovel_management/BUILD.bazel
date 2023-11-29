@@ -20,7 +20,7 @@ load(
     "test_suite_beam_files",
 )
 
-APP_NAME = "rabbitmq_shovel_management"
+APP_NAME = "esl_amqp_shovel_management"
 
 APP_DESCRIPTION = "Management extension for the Shovel plugin"
 
@@ -33,7 +33,7 @@ all_srcs(name = "all_srcs")
 test_suite_beam_files(name = "test_suite_beam_files")
 
 # gazelle:erlang_app_dep rabbit
-# gazelle:erlang_app_dep rabbitmq_shovel
+# gazelle:erlang_app_dep esl_amqp_shovel
 # gazelle:erlang_app_dep_exclude cowboy
 # gazelle:erlang_app_dep_exclude amqp_client
 # gazelle:erlang_app_dep_exclude rabbitmq_management_agent
@@ -52,7 +52,7 @@ rabbitmq_app(
         "//deps/rabbit:erlang_app",
         "//deps/rabbit_common:erlang_app",
         "//deps/rabbitmq_management:erlang_app",
-        "//deps/rabbitmq_shovel:erlang_app",
+        "//deps/esl_amqp_shovel:erlang_app",
     ],
 )
 
@@ -100,7 +100,7 @@ rabbitmq_integration_suite(
 )
 
 rabbitmq_suite(
-    name = "rabbit_shovel_mgmt_SUITE",
+    name = "esl_amqp_shovel_mgmt_SUITE",
     deps = [
         "//deps/rabbit_common:erlang_app",
         "//deps/rabbitmq_management_agent:erlang_app",
@@ -109,10 +109,10 @@ rabbitmq_suite(
 )
 
 rabbitmq_suite(
-    name = "rabbit_shovel_mgmt_util_SUITE",
+    name = "esl_amqp_shovel_mgmt_util_SUITE",
     deps = [
         "//deps/rabbit_common:erlang_app",
-        "//deps/rabbitmq_shovel:erlang_app",
+        "//deps/esl_amqp_shovel:erlang_app",
         "@meck//:erlang_app",
     ],
 )
@@ -120,7 +120,7 @@ rabbitmq_suite(
 assert_suites()
 
 alias(
-    name = "rabbitmq_shovel_management",
+    name = "esl_amqp_shovel_management",
     actual = ":erlang_app",
     visibility = ["//visibility:public"],
 )

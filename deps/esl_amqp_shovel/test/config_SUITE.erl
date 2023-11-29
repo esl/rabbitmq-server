@@ -91,7 +91,7 @@ parse_amqp091(_Config) ->
                           prefetch_count := 10,
                           delete_after := never,
                           resource_decl := _SDecl}}},
-        rabbit_shovel_config:parse(my_shovel, In)),
+        esl_amqp_shovel_config:parse(my_shovel, In)),
     ok.
 
 parse_amqp10_mixed(_Config) ->
@@ -126,5 +126,5 @@ parse_amqp10_mixed(_Config) ->
                         application_properties := #{app_prop_key := <<"app_prop_value">>},
                         message_annotations := #{soma_ann := <<"some-info">>},
                         add_forward_headers := true}}},
-        rabbit_shovel_config:parse(my_shovel, In)),
+        esl_amqp_shovel_config:parse(my_shovel, In)),
     ok.

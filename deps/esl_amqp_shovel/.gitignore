@@ -19,4 +19,4 @@
 elvis
 elvis.config
 
-/rabbitmq_shovel.d
+/esl_amqp_shovel.d

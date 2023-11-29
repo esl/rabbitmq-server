@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_status).
+-module(esl_amqp_shovel_status).
 -behaviour(gen_server).
 
 -export([start_link/0]).
@@ -26,7 +26,7 @@
 -define(ETS_NAME, ?MODULE).
 -define(CHECK_FREQUENCY, 60000).
 
-%% rabbit_shovel_mgmt_util:format_info as well as CLI shovel commands
+%% esl_amqp_shovel_mgmt_util:format_info as well as CLI shovel commands
 %% rely on this strict type as of 3.11.2
 %% (would be good to allow any atom as status name)
 -type info() :: starting
@@ -140,7 +140,7 @@ handle_cast({remove, Name}, State) ->
 
 handle_info(check, State) ->
     try
-        rabbit_shovel_dyn_worker_sup_sup:cleanup_specs()
+        esl_amqp_shovel_dyn_worker_sup_sup:cleanup_specs()
     catch
         C:E ->
             rabbit_log_shovel:warning("Recurring shovel spec clean up failed with ~p:~p", [C, E])

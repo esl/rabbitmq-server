@@ -74,5 +74,5 @@ delete(Config) ->
     [A] = rabbit_ct_broker_helpers:get_node_configs(Config, nodename),
     Opts = #{node => A, vhost => <<"/">>},
     ok = ?CMD:run([<<"myshovel">>], Opts),
-    [] = rabbit_ct_broker_helpers:rpc(Config, 0, rabbit_shovel_status,
+    [] = rabbit_ct_broker_helpers:rpc(Config, 0, esl_amqp_shovel_status,
                                       status, []).

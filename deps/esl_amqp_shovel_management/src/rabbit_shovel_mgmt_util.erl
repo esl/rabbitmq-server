@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_mgmt_util).
+-module(esl_amqp_shovel_mgmt_util).
 
 -export([status/2]).
 
@@ -17,7 +17,7 @@
 
 -include_lib("rabbitmq_management_agent/include/rabbit_mgmt_records.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel_mgmt.hrl").
+-include("esl_amqp_shovel_mgmt.hrl").
 
 %% Allow users to see things in the vhosts they are authorised. But
 %% static shovels do not have a vhost, so only allow admins (not
@@ -35,7 +35,7 @@ status(ReqData, Context) ->
         ReqData, Context).
 
 status(Node) ->
-    case rpc:call(Node, rabbit_shovel_status, status, [], ?SHOVEL_CALLS_TIMEOUT_MS) of
+    case rpc:call(Node, esl_amqp_shovel_status, status, [], ?SHOVEL_CALLS_TIMEOUT_MS) of
         {badrpc, {'EXIT', _}} ->
             [];
         Status ->

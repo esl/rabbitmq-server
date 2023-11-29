@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_locks).
+-module(esl_amqp_shovel_locks).
 
 -export([lock/1, unlock/1]).
 

@@ -14,4 +14,4 @@
 /sbin/
 /sbin.lock
 
-/rabbitmq_shovel_management.d
+/esl_amqp_shovel_management.d

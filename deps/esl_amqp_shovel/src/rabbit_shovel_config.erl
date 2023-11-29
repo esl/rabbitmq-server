@@ -5,13 +5,13 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_config).
+-module(esl_amqp_shovel_config).
 
 -export([parse/2,
          ensure_defaults/2]).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 resolve_module(amqp091) -> rabbit_amqp091_shovel;
 resolve_module(amqp10) -> rabbit_amqp10_shovel.
@@ -138,9 +138,9 @@ parse_current(ShovelName, Config) ->
            ack_mode => AckMode,
            reconnect_delay => proplists:get_value(reconnect_delay, Config,
                                                   ?DEFAULT_RECONNECT_DELAY),
-           source => rabbit_shovel_behaviour:parse(SrcMod, ShovelName,
+           source => esl_amqp_shovel_behaviour:parse(SrcMod, ShovelName,
                                                    {source, Source}),
-           dest => rabbit_shovel_behaviour:parse(DstMod, ShovelName,
+           dest => esl_amqp_shovel_behaviour:parse(DstMod, ShovelName,
                                                  {destination, Destination})}}.
 
 %% ensures that any defaults that have been applied to a parsed

@@ -70,7 +70,7 @@ end_per_testcase(Testcase, Config) ->
 
 configure_shovels(Config) ->
     rabbit_ct_helpers:merge_app_env(Config,
-      {rabbitmq_shovel, [
+      {esl_amqp_shovel, [
           {shovels,
             [{'my-static',
                 [{sources, [
@@ -215,7 +215,7 @@ shovels(Config) ->
 dynamic_plugin_enable_disable(Config) ->
     http_get(Config, "/shovels", ?OK),
     rabbit_ct_broker_helpers:disable_plugin(Config, 0,
-      "rabbitmq_shovel_management"),
+      "esl_amqp_shovel_management"),
     http_get(Config, "/shovels", ?NOT_FOUND),
     http_get(Config, "/overview", ?OK),
     rabbit_ct_broker_helpers:disable_plugin(Config, 0,
@@ -227,7 +227,7 @@ dynamic_plugin_enable_disable(Config) ->
     http_get(Config, "/shovels", ?NOT_FOUND),
     http_get(Config, "/overview", ?OK),
     rabbit_ct_broker_helpers:enable_plugin(Config, 0,
-      "rabbitmq_shovel_management"),
+      "esl_amqp_shovel_management"),
     http_get(Config, "/shovels", ?OK),
     http_get(Config, "/overview", ?OK),
     passed.

@@ -7,7 +7,7 @@
 
 -module('Elixir.RabbitMQ.CLI.Ctl.Commands.DeleteShovelCommand').
 
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -behaviour('Elixir.RabbitMQ.CLI.CommandBehaviour').
 
@@ -45,7 +45,7 @@ description() ->
     <<"Deletes a Shovel">>.
 
 help_section() ->
-    {plugin, shovel}.
+    {plugin, esl_shovel}.
 
 validate([], _Opts) ->
     {validation_failure, not_enough_args};
@@ -64,21 +64,21 @@ banner([Name], #{vhost := VHost}) ->
 run([Name], #{node := Node, vhost := VHost}) ->
     ActingUser = 'Elixir.RabbitMQ.CLI.Core.Helpers':cli_acting_user(),
 
-    case rabbit_misc:rpc_call(Node, rabbit_shovel_status, cluster_status_with_nodes, []) of
+    case rabbit_misc:rpc_call(Node, esl_amqp_shovel_status, cluster_status_with_nodes, []) of
         {badrpc, _} = Error ->
             Error;
         Xs when is_list(Xs) ->
             ErrMsg = rabbit_misc:format("Shovel with the given name was not found "
                                         "on the target node '~ts' and / or virtual host '~ts'",
                                         [Node, VHost]),
-            case rabbit_shovel_status:find_matching_shovel(VHost, Name, Xs) of
+            case esl_amqp_shovel_status:find_matching_shovel(VHost, Name, Xs) of
                 undefined ->
                     {error, rabbit_data_coercion:to_binary(ErrMsg)};
                 Match ->
                     {{_Name, _VHost}, _Type, {_State, Opts}, _Timestamp} = Match,
                     {_, HostingNode} = lists:keyfind(node, 1, Opts),
                     case rabbit_misc:rpc_call(
-                        HostingNode, rabbit_shovel_util, delete_shovel, [VHost, Name, ActingUser]) of
+                        HostingNode, esl_amqp_shovel_util, delete_shovel, [VHost, Name, ActingUser]) of
                         {badrpc, _} = Error ->
                             Error;
                         {error, not_found} ->

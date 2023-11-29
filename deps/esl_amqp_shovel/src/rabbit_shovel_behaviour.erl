@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_behaviour).
+-module(esl_amqp_shovel_behaviour).
 
 -export([
          % dynamic calls
@@ -82,7 +82,7 @@
 -callback forward(Tag :: tag(), Props :: #{atom() => any()},
                   Payload :: binary(), state()) ->
     state() | {stop, any()}.
--callback status(state()) -> rabbit_shovel_status:blocked_status() | ignore.
+-callback status(state()) -> esl_amqp_shovel_status:blocked_status() | ignore.
 
 -spec parse(atom(), binary(), {source | destination, proplists:proplist()}) ->
     source_config() | dest_config().

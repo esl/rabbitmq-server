@@ -1,4 +1,4 @@
--module(rabbit_shovel_mgmt_SUITE).
+-module(esl_amqp_shovel_mgmt_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -44,8 +44,8 @@ all() ->
     ].
 
 init_per_testcase(delete_resource_badrpc, _Config) ->
-    meck:expect(rabbit_shovel_mgmt_util, status, fun(_,_) -> ?MOCK_SHOVELS end),
-    meck:expect(rabbit_shovel_status, lookup,
+    meck:expect(esl_amqp_shovel_mgmt_util, status, fun(_,_) -> ?MOCK_SHOVELS end),
+    meck:expect(esl_amqp_shovel_status, lookup,
                 fun({_, Name}) ->
                         case [S || S <- ?MOCK_SHOVELS, proplists:get_value(name, S) =:= Name] of
                             [Obj] -> Obj;
@@ -54,37 +54,37 @@ init_per_testcase(delete_resource_badrpc, _Config) ->
                 end),
     _Config;
 init_per_testcase(_, _Config) ->
-    meck:new(rabbit_shovel_mgmt_util),
-    meck:expect(rabbit_shovel_mgmt_util, status, fun(_,_) -> ?MOCK_SHOVELS end),
+    meck:new(esl_amqp_shovel_mgmt_util),
+    meck:expect(esl_amqp_shovel_mgmt_util, status, fun(_,_) -> ?MOCK_SHOVELS end),
     _Config.
 
 end_per_testcase(delete_resource_badrpc, _Config) ->
-    meck:unload(rabbit_shovel_mgmt_util),
-    meck:unload(rabbit_shovel_status),
+    meck:unload(esl_amqp_shovel_mgmt_util),
+    meck:unload(esl_amqp_shovel_status),
     _Config;
 end_per_testcase(_, _Config) ->
-    meck:unload(rabbit_shovel_mgmt_util),
+    meck:unload(esl_amqp_shovel_mgmt_util),
     _Config.
 
 get_shovel_node_shovel_different_name(_Config) ->
     VHost = <<"otherVhost">>,
     Name= <<"shovelThatDoesntExist">>,
     User = #user{username="admin",tags = [administrator]},
-    Node = rabbit_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
+    Node = esl_amqp_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
     ?assertEqual(undefined, Node).
 
 get_shovel_node_shovel_different_vhost_name(_Config) ->
     VHost = <<"VHostThatDoesntExist">>,
     Name= <<"shovel1">>,
     User = #user{username="admin",tags = [administrator]},
-    Node = rabbit_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
+    Node = esl_amqp_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
     ?assertEqual(undefined, Node).
 
 get_shovel_node_shovel_found(_Config) ->
     VHost = <<"otherVhost">>,
     Name= <<"shovel2">>,
     User = #user{username="admin",tags = [administrator]},
-    Node = rabbit_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
+    Node = esl_amqp_shovel_mgmt:get_shovel_node(VHost, Name, {}, #context{user = User}),
     ?assertEqual('node2', Node).
 
 delete_resource_badrpc(_Config) ->
@@ -94,10 +94,10 @@ delete_resource_badrpc(_Config) ->
     Context = #context{user = User},
     ReqData = #{path => <<"/shovels/vhost/././restart">>,
                 bindings => #{vhost => VHost, name => Name}},
-    {Reply, ReqData, Context} = rabbit_shovel_mgmt:delete_resource(ReqData, Context),
+    {Reply, ReqData, Context} = esl_amqp_shovel_mgmt:delete_resource(ReqData, Context),
     ?assertEqual(false, Reply),
 
     ReqData2 = #{path => <<"/shovels/vhost/./.">>,
                  bindings => #{vhost => VHost, name => Name}},
-    {Reply, ReqData2, Context} = rabbit_shovel_mgmt:delete_resource(ReqData2, Context),
+    {Reply, ReqData2, Context} = esl_amqp_shovel_mgmt:delete_resource(ReqData2, Context),
     ?assertEqual(false, Reply).

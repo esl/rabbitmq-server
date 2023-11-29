@@ -1,6 +1,6 @@
-PROJECT = rabbitmq_shovel
+PROJECT = esl_amqp_shovel
 PROJECT_DESCRIPTION = Data Shovel for RabbitMQ
-PROJECT_MOD = rabbit_shovel
+PROJECT_MOD = esl_amqp_shovel
 
 define PROJECT_ENV
 [

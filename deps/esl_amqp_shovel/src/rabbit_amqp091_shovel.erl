@@ -7,10 +7,10 @@
 
 -module(rabbit_amqp091_shovel).
 
--behaviour(rabbit_shovel_behaviour).
+-behaviour(esl_amqp_shovel_behaviour).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -export([
          parse/2,
@@ -198,7 +198,7 @@ do_forward(IncomingTag, Props, Payload,
            State0 = #{dest := #{props_fun := {M, F, Args},
                                 current := {_, _, DstUri},
                                 fields_fun := {Mf, Ff, Argsf}}}) ->
-    SrcUri = rabbit_shovel_behaviour:source_uri(State0),
+    SrcUri = esl_amqp_shovel_behaviour:source_uri(State0),
     % do publish
     Exchange = maps:get(exchange, Props, undefined),
     RoutingKey = maps:get(routing_key, Props, undefined),
@@ -265,7 +265,7 @@ handle_source({#'basic.deliver'{delivery_tag = Tag,
     Props = (map_from_props(Props0))#{exchange => Exchange,
                                       routing_key => RoutingKey},
     % forward to destination
-    rabbit_shovel_behaviour:forward(Tag, Props, Payload, State);
+    esl_amqp_shovel_behaviour:forward(Tag, Props, Payload, State);
 
 handle_source({'EXIT', Conn, Reason},
               #{source := #{current := {Conn, _, _}}}) ->
@@ -280,13 +280,13 @@ handle_source(_Msg, _State) ->
 handle_dest(#'basic.ack'{delivery_tag = Seq, multiple = Multiple},
             State = #{ack_mode := on_confirm}) ->
     confirm_to_inbound(fun (Tag, Multi, StateX) ->
-                               rabbit_shovel_behaviour:ack(Tag, Multi, StateX)
+                               esl_amqp_shovel_behaviour:ack(Tag, Multi, StateX)
                        end, Seq, Multiple, State);
 
 handle_dest(#'basic.nack'{delivery_tag = Seq, multiple = Multiple},
             State = #{ack_mode := on_confirm }) ->
     confirm_to_inbound(fun (Tag, Multi, StateX) ->
-                               rabbit_shovel_behaviour:nack(Tag, Multi, StateX)
+                               esl_amqp_shovel_behaviour:nack(Tag, Multi, StateX)
                        end, Seq, Multiple, State);
 
 handle_dest(#'basic.cancel'{}, #{name := Name}) ->
@@ -335,7 +335,7 @@ confirm_to_inbound(ConfirmFun, Seq, Multiple,
     #{Seq := InTag} = Unacked,
     State = ConfirmFun(InTag, Multiple, State0),
     {Unacked1, Removed} = remove_delivery_tags(Seq, Multiple, Unacked, 0),
-    rabbit_shovel_behaviour:decr_remaining(Removed,
+    esl_amqp_shovel_behaviour:decr_remaining(Removed,
                                            State#{dest =>
                                                   Dst#{unacked => Unacked1}}).
 
@@ -363,15 +363,15 @@ publish(IncomingTag, Method, Msg,
             ok = amqp_channel:call(OutboundChan, Method, Msg)
     end,
 
-    rabbit_shovel_behaviour:decr_remaining_unacked(
+    esl_amqp_shovel_behaviour:decr_remaining_unacked(
       case AckMode of
           no_ack ->
-              rabbit_shovel_behaviour:decr_remaining(1, State);
+              esl_amqp_shovel_behaviour:decr_remaining(1, State);
           on_confirm ->
               State#{dest => Dst#{unacked => Unacked#{Seq => IncomingTag}}};
           on_publish ->
-              State1 = rabbit_shovel_behaviour:ack(IncomingTag, false, State),
-              rabbit_shovel_behaviour:decr_remaining(1, State1)
+              State1 = esl_amqp_shovel_behaviour:ack(IncomingTag, false, State),
+              esl_amqp_shovel_behaviour:decr_remaining(1, State1)
       end).
 
 control_throttle(State) ->
@@ -565,7 +565,7 @@ add_forward_headers_fun(_Name, false, PubProps) ->
     PubProps.
 
 props_fun_forward_header(Name, {M, F, Args}, SrcUri, DestUri, Props) ->
-    rabbit_shovel_util:update_headers(
+    esl_amqp_shovel_util:update_headers(
       [{<<"shovelled-by">>, rabbit_nodes:cluster_name()},
        {<<"shovel-type">>,  <<"static">>},
        {<<"shovel-name">>,  list_to_binary(atom_to_list(Name))}],
@@ -576,7 +576,7 @@ add_timestamp_header_fun(true, PubProps) ->
 add_timestamp_header_fun(false, PubProps) -> PubProps.
 
 props_fun_timestamp_header({M, F, Args}, SrcUri, DestUri, Props) ->
-    rabbit_shovel_util:add_timestamp_header(
+    esl_amqp_shovel_util:add_timestamp_header(
       apply(M, F, Args ++ [SrcUri, DestUri, Props])).
 
 parse_declaration({[], Acc}) ->

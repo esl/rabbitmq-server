@@ -7,10 +7,10 @@
 
 -module(rabbit_amqp10_shovel).
 
--behaviour(rabbit_shovel_behaviour).
+-behaviour(esl_amqp_shovel_behaviour).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -export([
          parse/2,
@@ -40,11 +40,11 @@
 -define(INFO(Text, Args), rabbit_log_shovel:info(Text, Args)).
 -define(LINK_CREDIT_TIMEOUT, 20_000).
 
--type state() :: rabbit_shovel_behaviour:state().
--type uri() :: rabbit_shovel_behaviour:uri().
--type tag() :: rabbit_shovel_behaviour:tag().
--type endpoint_config() :: rabbit_shovel_behaviour:source_config()
-                           | rabbit_shovel_behaviour:dest_config().
+-type state() :: esl_amqp_shovel_behaviour:state().
+-type uri() :: esl_amqp_shovel_behaviour:uri().
+-type tag() :: esl_amqp_shovel_behaviour:tag().
+-type endpoint_config() :: esl_amqp_shovel_behaviour:source_config()
+                           | esl_amqp_shovel_behaviour:dest_config().
 
 -spec parse(binary(), {source | destination, proplists:proplist()}) ->
     endpoint_config().
@@ -178,7 +178,7 @@ handle_source({amqp10_msg, _LinkRef, Msg}, State) ->
     Tag = amqp10_msg:delivery_id(Msg),
     Payload = amqp10_msg:body_bin(Msg),
     Props = props_to_map(Msg),
-    rabbit_shovel_behaviour:forward(Tag, Props, Payload, State);
+    esl_amqp_shovel_behaviour:forward(Tag, Props, Payload, State);
 handle_source({amqp10_event, {connection, Conn, opened}},
               State = #{source := #{current := #{conn := Conn}}}) ->
     State;
@@ -218,15 +218,15 @@ handle_dest({amqp10_disposition, {Result, Tag}},
     {Decr, State} =
         case {Unacked, Result} of
             {#{Tag := IncomingTag}, accepted} ->
-                {1, rabbit_shovel_behaviour:ack(IncomingTag, false, State1)};
+                {1, esl_amqp_shovel_behaviour:ack(IncomingTag, false, State1)};
             {#{Tag := IncomingTag}, rejected} ->
-                {1, rabbit_shovel_behaviour:nack(IncomingTag, false, State1)};
+                {1, esl_amqp_shovel_behaviour:nack(IncomingTag, false, State1)};
             _ -> % not found - this should ideally not happen
                 rabbit_log_shovel:warning("Shovel ~ts amqp10 destination disposition tag not found: ~tp",
                                           [Name, Tag]),
                 {0, State1}
         end,
-    rabbit_shovel_behaviour:decr_remaining(Decr, State);
+    esl_amqp_shovel_behaviour:decr_remaining(Decr, State);
 handle_dest({amqp10_event, {connection, Conn, opened}},
             State = #{dest := #{current := #{conn := Conn}}}) ->
     State;
@@ -335,15 +335,15 @@ forward(Tag, Props, Payload,
                      Props, add_forward_headers(State, Msg0))),
     case send_msg(Link, Msg) of
         ok ->
-            rabbit_shovel_behaviour:decr_remaining_unacked(
+            esl_amqp_shovel_behaviour:decr_remaining_unacked(
               case AckMode of
                   no_ack ->
-                      rabbit_shovel_behaviour:decr_remaining(1, State);
+                      esl_amqp_shovel_behaviour:decr_remaining(1, State);
                   on_confirm ->
                       State#{dest => Dst#{unacked => Unacked#{OutTag => Tag}}};
                   on_publish ->
-                      State1 = rabbit_shovel_behaviour:ack(Tag, false, State),
-                      rabbit_shovel_behaviour:decr_remaining(1, State1)
+                      State1 = esl_amqp_shovel_behaviour:ack(Tag, false, State),
+                      esl_amqp_shovel_behaviour:decr_remaining(1, State1)
               end);
         Stop ->
             Stop
@@ -474,7 +474,7 @@ ttl(T) when is_integer(T) ->
 ttl(_T)  -> undefined.
 
 conversion_enabled() ->
-    application:get_env(rabbitmq_shovel, convert_amqp10_props_to_amqp091, false).
+    application:get_env(esl_amqp_shovel, convert_amqp10_props_to_amqp091, false).
 
 props_to_map(Msg) ->
     case conversion_enabled() of

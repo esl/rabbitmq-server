@@ -71,7 +71,7 @@ end_per_testcase(Testcase, Config) ->
 
 stop_shovel_plugin(Config) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, 0,
-                                      application, stop, [rabbitmq_shovel]),
+                                      application, stop, [esl_amqp_shovel]),
     Config.
 
 %% -------------------------------------------------------------------
@@ -141,7 +141,7 @@ amqp10_destination(Config, AckMode) ->
 
     [{test_shovel, static, {running, _Info}, _Time}] =
         rabbit_ct_broker_helpers:rpc(Config, 0,
-          rabbit_shovel_status, status, []),
+          esl_amqp_shovel_status, status, []),
     amqp10_client:detach_link(Receiver),
     amqp10_client:close_connection(Conn),
     rabbit_ct_client_helpers:close_channel(Chan).
@@ -185,7 +185,7 @@ amqp10_source(Config, AckMode) ->
 
     [{test_shovel, static, {running, _Info}, _Time}] =
         rabbit_ct_broker_helpers:rpc(Config, 0,
-          rabbit_shovel_status, status, []),
+          esl_amqp_shovel_status, status, []),
     rabbit_ct_client_helpers:close_channel(Chan).
 
 setup_amqp10_source_shovel(Config, SourceQueue, DestQueue, AckMode) ->
@@ -261,14 +261,14 @@ setup_amqp10_shovel(Config, SourceQueue, DestQueue, AckMode) ->
                                       [Shovel]).
 
 setup_shovel(ShovelConfig) ->
-    _ = application:stop(rabbitmq_shovel),
-    application:set_env(rabbitmq_shovel, shovels, ShovelConfig, infinity),
-    ok = application:start(rabbitmq_shovel),
+    _ = application:stop(esl_amqp_shovel),
+    application:set_env(esl_amqp_shovel, shovels, ShovelConfig, infinity),
+    ok = application:start(esl_amqp_shovel),
     await_running_shovel(test_shovel).
 
 await_running_shovel(Name) ->
     case [N || {N, _, {running, _}, _}
-                      <- rabbit_shovel_status:status(),
+                      <- esl_amqp_shovel_status:status(),
                          N =:= Name] of
         [_] -> ok;
         _   -> timer:sleep(100),

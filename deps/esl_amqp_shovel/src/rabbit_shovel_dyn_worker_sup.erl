@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_dyn_worker_sup).
+-module(esl_amqp_shovel_dyn_worker_sup).
 -behaviour(supervisor2).
 
 -export([start_link/2, init/1]).
@@ -13,11 +13,11 @@
 -import(rabbit_misc, [pget/3]).
 
 -include_lib("rabbit_common/include/rabbit.hrl").
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 -define(SUPERVISOR, ?MODULE).
 
 start_link(Name, Config) ->
-    ShovelParameter = rabbit_shovel_util:get_shovel_parameter(Name),
+    ShovelParameter = esl_amqp_shovel_util:get_shovel_parameter(Name),
     maybe_start_link(ShovelParameter, Name, Config).
 
 maybe_start_link(not_found, _Name, _Config) ->
@@ -54,6 +54,6 @@ init([Name, Config0]) ->
     end,
     {ok, {{one_for_one, 1, ?MAX_WAIT},
           [{Name,
-            {rabbit_shovel_worker, start_link, [dynamic, Name, Config]},
+            {esl_amqp_shovel_worker, start_link, [dynamic, Name, Config]},
             Restart,
-            16#ffffffff, worker, [rabbit_shovel_worker]}]}}.
+            16#ffffffff, worker, [esl_amqp_shovel_worker]}]}}.

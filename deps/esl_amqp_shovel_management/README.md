@@ -14,7 +14,7 @@ This plugin ships with RabbitMQ. Like all [plugins](https://www.rabbitmq.com/plu
 before it can be used:
 
 ```
-rabbitmq-plugins enable rabbitmq_shovel_management
+rabbitmq-plugins enable esl_amqp_shovel_management
 ```
 
 
@@ -73,7 +73,7 @@ curl -u guest:guest -v -X PUT -H 'Content-Type: application/json' -d @./shovel.j
 #### `GET /api/parameters/shovel/{vhost}/{name}`
 Shows the configurtion parameters for a shovel.
 
-**Example** 
+**Example**
 
 ```bash
 curl -u guest:guest -v http://localhost:15672/api/parameters/shovel/%2F/my-shovel
@@ -83,7 +83,7 @@ curl -u guest:guest -v http://localhost:15672/api/parameters/shovel/%2F/my-shove
 
 Deletes a shovel.
 
-**Example** 
+**Example**
 
 ```bash
 curl -u guest:guest -v -X DELETE http://localhost:15672/api/parameters/shovel/%2F/my-shovel

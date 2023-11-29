@@ -61,8 +61,8 @@ end_per_testcase(_TestCase, _Config) ->
 %%%===================================================================
 
 amqp_encoded_data_list(_Config) ->
-    meck:new(rabbit_shovel_behaviour, [passthrough]),
-    meck:expect(rabbit_shovel_behaviour, forward,
+    meck:new(esl_amqp_shovel_behaviour, [passthrough]),
+    meck:expect(esl_amqp_shovel_behaviour, forward,
                 fun (_, _, Pay, S) ->
                         ?assert(erlang:is_binary(Pay)),
                         S
@@ -78,12 +78,12 @@ amqp_encoded_data_list(_Config) ->
     Msg = amqp10_msg:new(55, Body),
     rabbit_amqp10_shovel:handle_source({amqp10_msg, linkref, Msg}, State),
 
-    ?assert(meck:validate(rabbit_shovel_behaviour)),
+    ?assert(meck:validate(esl_amqp_shovel_behaviour)),
     ok.
 
 amqp_encoded_amqp_value(_Config) ->
-    meck:new(rabbit_shovel_behaviour, [passthrough]),
-    meck:expect(rabbit_shovel_behaviour, forward,
+    meck:new(esl_amqp_shovel_behaviour, [passthrough]),
+    meck:expect(esl_amqp_shovel_behaviour, forward,
                 fun (_, _, Pay, S) ->
                         ?assert(erlang:is_binary(Pay)),
                         S
@@ -96,7 +96,7 @@ amqp_encoded_amqp_value(_Config) ->
     Msg = amqp10_msg:new(55, Body),
     rabbit_amqp10_shovel:handle_source({amqp10_msg, linkref, Msg}, State),
 
-    ?assert(meck:validate(rabbit_shovel_behaviour)),
+    ?assert(meck:validate(esl_amqp_shovel_behaviour)),
     ok.
 
 %% Utility

@@ -67,7 +67,7 @@ end_per_testcase(Testcase, Config) ->
 
 stop_shovel_plugin(Config) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, 0,
-      application, stop, [rabbitmq_shovel]),
+      application, stop, [esl_amqp_shovel]),
     Config.
 
 %% -------------------------------------------------------------------
@@ -80,8 +80,8 @@ zero_shovels(Config) ->
 
 zero_shovels1(_Config) ->
     %% shovel can be started with zero shovels configured
-    ok = application:start(rabbitmq_shovel),
-    ok = application:stop(rabbitmq_shovel),
+    ok = application:start(esl_amqp_shovel),
+    ok = application:stop(esl_amqp_shovel),
     passed.
 
 invalid_legacy_configuration(Config) ->
@@ -187,8 +187,8 @@ invalid_legacy_configuration1(_Config) ->
     passed.
 
 test_broken_shovel_configs(Configs) ->
-    application:set_env(rabbitmq_shovel, shovels, Configs),
-    {error, {Error, _}} = application:start(rabbitmq_shovel),
+    application:set_env(esl_amqp_shovel, shovels, Configs),
+    {error, {Error, _}} = application:start(esl_amqp_shovel),
     Error.
 
 test_broken_shovel_config(Config) ->
@@ -256,7 +256,7 @@ run_valid_test(Config) ->
 
     [{test_shovel, static, {running, _Info}, _Time}] =
         rabbit_ct_broker_helpers:rpc(Config, 0,
-          rabbit_shovel_status, status, []),
+          esl_amqp_shovel_status, status, []),
 
     receive
         {#'basic.deliver' { consumer_tag = CTag, delivery_tag = AckTag1,
@@ -280,13 +280,13 @@ setup_shovels(Config) ->
       ?MODULE, setup_shovels1, [Config]).
 
 setup_legacy_shovels1(Config) ->
-    _ = application:stop(rabbitmq_shovel),
+    _ = application:stop(esl_amqp_shovel),
     Hostname = ?config(rmq_hostname, Config),
     TcpPort = rabbit_ct_broker_helpers:get_node_config(Config, 0,
       tcp_port_amqp),
     %% a working config
     application:set_env(
-      rabbitmq_shovel,
+      esl_amqp_shovel,
       shovels,
       [{test_shovel,
         [{sources,
@@ -312,17 +312,17 @@ setup_legacy_shovels1(Config) ->
         ]}],
       infinity),
 
-    ok = application:start(rabbitmq_shovel),
+    ok = application:start(esl_amqp_shovel),
     await_running_shovel(test_shovel).
 
 setup_shovels1(Config) ->
-    _ = application:stop(rabbitmq_shovel),
+    _ = application:stop(esl_amqp_shovel),
     Hostname = ?config(rmq_hostname, Config),
     TcpPort = rabbit_ct_broker_helpers:get_node_config(Config, 0,
       tcp_port_amqp),
     %% a working config
     application:set_env(
-      rabbitmq_shovel,
+      esl_amqp_shovel,
       shovels,
       [{test_shovel,
         [{source,
@@ -346,12 +346,12 @@ setup_shovels1(Config) ->
          {ack_mode, on_confirm}]}],
       infinity),
 
-    ok = application:start(rabbitmq_shovel),
+    ok = application:start(esl_amqp_shovel),
     await_running_shovel(test_shovel).
 
 await_running_shovel(Name) ->
     case [N || {N, _, {running, _}, _}
-                      <- rabbit_shovel_status:status(),
+                      <- esl_amqp_shovel_status:status(),
                          N =:= Name] of
         [_] -> ok;
         _   -> timer:sleep(100),

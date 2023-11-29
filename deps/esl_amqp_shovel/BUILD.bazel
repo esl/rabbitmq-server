@@ -22,11 +22,11 @@ load(
     "test_suite_beam_files",
 )
 
-APP_NAME = "rabbitmq_shovel"
+APP_NAME = "esl_amqp_shovel"
 
 APP_DESCRIPTION = "Data Shovel for RabbitMQ"
 
-APP_MODULE = "rabbit_shovel"
+APP_MODULE = "esl_amqp_shovel"
 
 APP_ENV = """[
 	    {defaults, [
@@ -176,12 +176,12 @@ rabbitmq_integration_suite(
 assert_suites()
 
 alias(
-    name = "rabbitmq_shovel",
+    name = "esl_amqp_shovel",
     actual = ":erlang_app",
     visibility = ["//visibility:public"],
 )
 
 ez(
-    name = "rabbitmq_shovel_ez",
+    name = "esl_amqp_shovel_ez",
     app = ":erlang_app",
 )

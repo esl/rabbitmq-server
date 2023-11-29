@@ -177,7 +177,7 @@ message_prop_conversion(Config) ->
                                       0,
                                       application,
                                       set_env,
-                                      [rabbitmq_shovel, convert_amqp10_props_to_amqp091, true]),
+                                      [esl_amqp_shovel, convert_amqp10_props_to_amqp091, true]),
     with_session(Config,
         fun (Sess) ->
                 shovel_test_utils:set_param(
@@ -276,7 +276,7 @@ message_prop_conversion(Config) ->
                                         0,
                                         application,
                                         set_env,
-                                        [rabbitmq_shovel, convert_amqp10_props_to_amqp091, false]).
+                                        [esl_amqp_shovel, convert_amqp10_props_to_amqp091, false]).
 
 
 change_definition(Config) ->
@@ -482,7 +482,7 @@ expect_count(Session, Address, Payload, Count) ->
 invalid_param(Config, Value, User) ->
     {error_string, _} = rabbit_ct_broker_helpers:rpc(Config, 0,
       rabbit_runtime_parameters, set,
-      [<<"/">>, <<"shovel">>, <<"invalid">>, Value, User]).
+      [<<"/">>, <<"esl-shovel">>, <<"invalid">>, Value, User]).
 
 valid_param(Config, Value, User) ->
     rabbit_ct_broker_helpers:rpc(Config, 0,
@@ -490,8 +490,8 @@ valid_param(Config, Value, User) ->
 
 valid_param1(_Config, Value, User) ->
     ok = rabbit_runtime_parameters:set(
-           <<"/">>, <<"shovel">>, <<"a">>, Value, User),
-    ok = rabbit_runtime_parameters:clear(<<"/">>, <<"shovel">>, <<"a">>, <<"acting-user">>).
+           <<"/">>, <<"esl-shovel">>, <<"a">>, Value, User),
+    ok = rabbit_runtime_parameters:clear(<<"/">>, <<"esl-shovel">>, <<"a">>, <<"acting-user">>).
 
 invalid_param(Config, Value) -> invalid_param(Config, Value, none).
 valid_param(Config, Value) -> valid_param(Config, Value, none).
@@ -515,5 +515,5 @@ await_autodelete1(_Config, Name) ->
       end).
 
 shovels_from_parameters() ->
-    L = rabbit_runtime_parameters:list(<<"/">>, <<"shovel">>),
+    L = rabbit_runtime_parameters:list(<<"/">>, <<"esl-shovel">>),
     [rabbit_misc:pget(name, Shovel) || Shovel <- L].

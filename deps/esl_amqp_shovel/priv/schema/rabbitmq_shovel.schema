@@ -1,3 +1,3 @@
 
-{mapping, "shovel.convert_amqp10_props_to_amqp091", "rabbitmq_shovel.convert_amqp10_props_to_amqp091",
+{mapping, "shovel.convert_amqp10_props_to_amqp091", "esl_amqp_shovel.convert_amqp10_props_to_amqp091",
     [{datatype, {enum, [true, false]}}]}.

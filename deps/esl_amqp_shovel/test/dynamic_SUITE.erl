@@ -472,11 +472,11 @@ security_validation_remove_user() ->
     ok.
 
 get_connection_name(_Config) ->
-    <<"Shovel static_shovel_name_as_atom">> = rabbit_shovel_worker:get_connection_name(static_shovel_name_as_atom),
-    <<"Shovel dynamic_shovel_name_as_binary">> = rabbit_shovel_worker:get_connection_name({<<"/">>, <<"dynamic_shovel_name_as_binary">>}),
-    <<"Shovel">> = rabbit_shovel_worker:get_connection_name({<<"/">>, {unexpected, tuple}}),
-    <<"Shovel">> = rabbit_shovel_worker:get_connection_name({one, two, three}),
-    <<"Shovel">> = rabbit_shovel_worker:get_connection_name(<<"anything else">>).
+    <<"Shovel static_shovel_name_as_atom">> = esl_amqp_shovel_worker:get_connection_name(static_shovel_name_as_atom),
+    <<"Shovel dynamic_shovel_name_as_binary">> = esl_amqp_shovel_worker:get_connection_name({<<"/">>, <<"dynamic_shovel_name_as_binary">>}),
+    <<"Shovel">> = esl_amqp_shovel_worker:get_connection_name({<<"/">>, {unexpected, tuple}}),
+    <<"Shovel">> = esl_amqp_shovel_worker:get_connection_name({one, two, three}),
+    <<"Shovel">> = esl_amqp_shovel_worker:get_connection_name(<<"anything else">>).
 
 credit_flow(Config) ->
     OrigCredit = set_default_credit(Config, {20, 10}),
@@ -629,7 +629,7 @@ dest_resource_alarm(AckMode, Config) ->
                          Config, 0,
                          rabbit_runtime_parameters, set,
                          [
-                          <<"/">>, <<"shovel">>, <<"temp">>,
+                          <<"/">>, <<"esl-shovel">>, <<"temp">>,
                           [{<<"src-uri">>, <<"amqp://">>},
                            {<<"dest-uri">>, [<<"amqp://">>]},
                            {<<"src-queue">>, <<"temp">>},
@@ -741,7 +741,7 @@ expect_count(Ch, Q, M, Count) ->
 invalid_param(Config, Value, User) ->
     {error_string, _} = rabbit_ct_broker_helpers:rpc(Config, 0,
       rabbit_runtime_parameters, set,
-      [<<"/">>, <<"shovel">>, <<"invalid">>, Value, User]).
+      [<<"/">>, <<"esl-shovel">>, <<"invalid">>, Value, User]).
 
 valid_param(Config, Value, User) ->
     rabbit_ct_broker_helpers:rpc(Config, 0,
@@ -749,8 +749,8 @@ valid_param(Config, Value, User) ->
 
 valid_param1(_Config, Value, User) ->
     ok = rabbit_runtime_parameters:set(
-           <<"/">>, <<"shovel">>, <<"name">>, Value, User),
-    ok = rabbit_runtime_parameters:clear(<<"/">>, <<"shovel">>, <<"name">>, <<"acting-user">>).
+           <<"/">>, <<"esl-shovel">>, <<"name">>, Value, User),
+    ok = rabbit_runtime_parameters:clear(<<"/">>, <<"esl-shovel">>, <<"name">>, <<"acting-user">>).
 
 invalid_param(Config, Value) -> invalid_param(Config, Value, none).
 valid_param(Config, Value) -> valid_param(Config, Value, none).
@@ -787,7 +787,7 @@ await_autodelete1(_Config, Name) ->
       end).
 
 shovels_from_parameters() ->
-    L = rabbit_runtime_parameters:list(<<"/">>, <<"shovel">>),
+    L = rabbit_runtime_parameters:list(<<"/">>, <<"esl-shovel">>),
     [rabbit_misc:pget(name, Shovel) || Shovel <- L].
 
 set_default_credit(Config, Value) ->
@@ -851,12 +851,12 @@ spawn_suspender_proc(Pid) ->
 find_shovel_pid(Config) ->
     [ShovelPid] = [P || P <- rabbit_ct_broker_helpers:rpc(
                                Config, 0, erlang, processes, []),
-                        rabbit_shovel_worker ==
+                        esl_amqp_shovel_worker ==
                             (catch element(1, erpc:call(node(P), proc_lib, initial_call, [P])))],
     ShovelPid.
 
 get_shovel_state(ShovelPid) ->
-    gen_server2:with_state(ShovelPid, fun rabbit_shovel_worker:get_internal_config/1).
+    gen_server2:with_state(ShovelPid, fun esl_amqp_shovel_worker:get_internal_config/1).
 
 find_writer_pid_for_channel(Config, ChanPid) ->
     {amqp_channel, ChanName} = process_name(ChanPid),

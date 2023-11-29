@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_util).
+-module(esl_amqp_shovel_util).
 
 -export([update_headers/5,
          add_timestamp_header/1,
@@ -37,25 +37,25 @@ add_timestamp_header(Props = #'P_basic'{headers = Headers}) ->
     Props#'P_basic'{headers = Headers2}.
 
 delete_shovel(VHost, Name, ActingUser) ->
-    case rabbit_shovel_status:lookup({VHost, Name}) of
+    case esl_amqp_shovel_status:lookup({VHost, Name}) of
         not_found ->
             {error, not_found};
         _Obj ->
-            ok = rabbit_runtime_parameters:clear(VHost, <<"shovel">>, Name, ActingUser)
+            ok = rabbit_runtime_parameters:clear(VHost, <<"esl-shovel">>, Name, ActingUser)
     end.
 
 restart_shovel(VHost, Name) ->
-    case rabbit_shovel_status:lookup({VHost, Name}) of
+    case esl_amqp_shovel_status:lookup({VHost, Name}) of
         not_found ->
             {error, not_found};
         _Obj ->
             rabbit_log_shovel:info("Shovel '~ts' in virtual host '~ts' will be restarted", [Name, VHost]),
-            ok = rabbit_shovel_dyn_worker_sup_sup:stop_child({VHost, Name}),
-            {ok, _} = rabbit_shovel_dyn_worker_sup_sup:start_link(),
+            ok = esl_amqp_shovel_dyn_worker_sup_sup:stop_child({VHost, Name}),
+            {ok, _} = esl_amqp_shovel_dyn_worker_sup_sup:start_link(),
             ok
     end.
 
 get_shovel_parameter({VHost, ShovelName}) ->
-    rabbit_runtime_parameters:lookup(VHost, <<"shovel">>, ShovelName);
+    rabbit_runtime_parameters:lookup(VHost, <<"esl-shovel">>, ShovelName);
 get_shovel_parameter(ShovelName) ->
-    rabbit_runtime_parameters:lookup(<<"/">>, <<"shovel">>, ShovelName).
+    rabbit_runtime_parameters:lookup(<<"/">>, <<"esl-shovel">>, ShovelName).

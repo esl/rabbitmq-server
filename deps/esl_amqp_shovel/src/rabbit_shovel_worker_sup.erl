@@ -5,12 +5,12 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_worker_sup).
+-module(esl_amqp_shovel_worker_sup).
 -behaviour(mirrored_supervisor).
 
 -export([start_link/2, init/1]).
 
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 -include_lib("rabbit_common/include/rabbit.hrl").
 
 start_link(ShovelName, ShovelConfig) ->
@@ -19,7 +19,7 @@ start_link(ShovelName, ShovelConfig) ->
 
 init([Name, Config]) ->
     ChildSpecs = [{id(Name),
-                   {rabbit_shovel_worker, start_link, [static, Name, Config]},
+                   {esl_amqp_shovel_worker, start_link, [static, Name, Config]},
                    case Config of
                        #{reconnect_delay := N}
                          when is_integer(N) andalso N > 0 -> {permanent, N};
@@ -27,7 +27,7 @@ init([Name, Config]) ->
                    end,
                    16#ffffffff,
                    worker,
-                   [rabbit_shovel_worker]}],
+                   [esl_amqp_shovel_worker]}],
     {ok, {{one_for_one, 1, ?MAX_WAIT}, ChildSpecs}}.
 
 id(Name) ->

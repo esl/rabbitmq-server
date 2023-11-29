@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_worker).
+-module(esl_amqp_shovel_worker).
 -behaviour(gen_server2).
 
 -export([start_link/3]).
@@ -16,15 +16,15 @@
 -export([get_connection_name/1,
          get_internal_config/1]).
 
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 -record(state, {name :: binary() | {rabbit_types:vhost(), binary()},
                 type :: static | dynamic,
-                config :: rabbit_shovel_behaviour:state(),
-                last_reported_status = running :: rabbit_shovel_status:blocked_status()}).
+                config :: esl_amqp_shovel_behaviour:state(),
+                last_reported_status = running :: esl_amqp_shovel_status:blocked_status()}).
 
 start_link(Type, Name, Config) ->
-    ShovelParameter = rabbit_shovel_util:get_shovel_parameter(Name),
+    ShovelParameter = esl_amqp_shovel_util:get_shovel_parameter(Name),
     maybe_start_link(ShovelParameter, Type, Name, Config).
 
 maybe_start_link(not_found, dynamic, _Name, _Config) ->
@@ -36,7 +36,7 @@ maybe_start_link(not_found, dynamic, _Name, _Config) ->
     %% We return 'ignore' to ensure that the child is not [re-]added in such case.
     ignore;
 maybe_start_link(_, Type, Name, Config) ->
-    ok = rabbit_shovel_status:report(Name, Type, starting),
+    ok = esl_amqp_shovel_status:report(Name, Type, starting),
     gen_server2:start_link(?MODULE, [Type, Name, Config], []).
 
 %%---------------------------
@@ -49,7 +49,7 @@ init([Type, Name, Config0]) ->
                      Config0;
                 dynamic ->
                     ClusterName = rabbit_nodes:cluster_name(),
-                    {ok, Conf} = rabbit_shovel_parameters:parse(Name,
+                    {ok, Conf} = esl_amqp_shovel_parameters:parse(Name,
                                                                 ClusterName,
                                                                 Config0),
                     Conf
@@ -62,7 +62,7 @@ handle_call(_Msg, _From, State) ->
     {noreply, State}.
 
 handle_cast(init, State = #state{config = Config0}) ->
-    try rabbit_shovel_behaviour:connect_source(Config0) of
+    try esl_amqp_shovel_behaviour:connect_source(Config0) of
       Config ->
         rabbit_log_shovel:debug("Shovel ~ts connected to source", [human_readable_name(maps:get(name, Config))]),
         %% this makes sure that connection pid is updated in case
@@ -75,7 +75,7 @@ handle_cast(init, State = #state{config = Config0}) ->
       {stop, shutdown, State}
     end;
 handle_cast(connect_dest, State = #state{config = Config0}) ->
-    try rabbit_shovel_behaviour:connect_dest(Config0) of
+    try esl_amqp_shovel_behaviour:connect_dest(Config0) of
       Config ->
         rabbit_log_shovel:debug("Shovel ~ts connected to destination", [human_readable_name(maps:get(name, Config))]),
         gen_server2:cast(self(), init_shovel),
@@ -89,8 +89,8 @@ handle_cast(init_shovel, State = #state{config = Config}) ->
     %% if we try to shut down while waiting for a connection to be
     %% established then we don't block
     process_flag(trap_exit, true),
-    Config1 = rabbit_shovel_behaviour:init_dest(Config),
-    Config2 = rabbit_shovel_behaviour:init_source(Config1),
+    Config1 = esl_amqp_shovel_behaviour:init_dest(Config),
+    Config2 = esl_amqp_shovel_behaviour:init_source(Config1),
     rabbit_log_shovel:debug("Shovel ~ts has finished setting up its topology", [human_readable_name(maps:get(name, Config2))]),
     State1 = State#state{config = Config2},
     ok = report_running(State1),
@@ -98,9 +98,9 @@ handle_cast(init_shovel, State = #state{config = Config}) ->
 
 
 handle_info(Msg, State = #state{config = Config, name = Name}) ->
-    case rabbit_shovel_behaviour:handle_source(Msg, Config) of
+    case esl_amqp_shovel_behaviour:handle_source(Msg, Config) of
         not_handled ->
-            case rabbit_shovel_behaviour:handle_dest(Msg, Config) of
+            case esl_amqp_shovel_behaviour:handle_dest(Msg, Config) of
                 not_handled ->
                     rabbit_log_shovel:warning("Shovel ~ts could not handle a destination message ~tp", [human_readable_name(Name), Msg]),
                     {noreply, State};
@@ -145,10 +145,10 @@ terminate({shutdown, autodelete}, State = #state{name = Name,
     rabbit_log_shovel:info("Shovel '~ts' is stopping (it was configured to autodelete and transfer is completed)",
                            [human_readable_name(Name)]),
     close_connections(State),
-    %% See rabbit_shovel_dyn_worker_sup_sup:stop_child/1
+    %% See esl_amqp_shovel_dyn_worker_sup_sup:stop_child/1
     put({shovel_worker_autodelete, Name}, true),
-    _ = rabbit_runtime_parameters:clear(VHost, <<"shovel">>, ShovelName, ?SHOVEL_USER),
-    rabbit_shovel_status:remove(Name),
+    _ = rabbit_runtime_parameters:clear(VHost, <<"esl-shovel">>, ShovelName, ?SHOVEL_USER),
+    esl_amqp_shovel_status:remove(Name),
     ok;
 terminate(shutdown, State) ->
     close_connections(State),
@@ -158,31 +158,31 @@ terminate(socket_closed_unexpectedly, State) ->
     ok;
 terminate({'EXIT', heartbeat_timeout}, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping because of a heartbeat timeout", [human_readable_name(Name)]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "heartbeat timeout"}),
     close_connections(State),
     ok;
 terminate({'EXIT', outbound_conn_died}, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping because destination connection failed", [human_readable_name(Name)]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "destination connection failed"}),
     close_connections(State),
     ok;
 terminate({'EXIT', inbound_conn_died}, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping because destination connection failed", [human_readable_name(Name)]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "source connection failed"}),
     close_connections(State),
     ok;
 terminate({shutdown, heartbeat_timeout}, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping because of a heartbeat timeout", [human_readable_name(Name)]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "heartbeat timeout"}),
     close_connections(State),
     ok;
 terminate({shutdown, restart}, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping to restart", [human_readable_name(Name)]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "needed a restart"}),
     close_connections(State),
     ok;
@@ -190,13 +190,13 @@ terminate({{shutdown, {server_initiated_close, Code, Reason}}, _}, State = #stat
     rabbit_log_shovel:error("Shovel ~ts is stopping: one of its connections closed "
                             "with code ~b, reason: ~ts",
                             [human_readable_name(Name), Code, Reason]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, "needed a restart"}),
     close_connections(State),
     ok;
 terminate(Reason, State = #state{name = Name}) ->
     rabbit_log_shovel:error("Shovel ~ts is stopping, reason: ~tp", [human_readable_name(Name), Reason]),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {terminated, Reason}),
     close_connections(State),
     ok.
@@ -216,24 +216,24 @@ human_readable_name(Name) ->
 
 maybe_report_blocked_status(#state{config = Config,
                                    last_reported_status = LastStatus} = State) ->
-    case rabbit_shovel_behaviour:status(Config) of
+    case esl_amqp_shovel_behaviour:status(Config) of
         ignore ->
             State;
         LastStatus ->
             State;
         NewStatus ->
-            rabbit_shovel_status:report_blocked_status(State#state.name, NewStatus),
+            esl_amqp_shovel_status:report_blocked_status(State#state.name, NewStatus),
             State#state{last_reported_status = NewStatus}
     end.
 
 report_running(#state{config = Config} = State) ->
-    InUri = rabbit_shovel_behaviour:source_uri(Config),
-    OutUri = rabbit_shovel_behaviour:dest_uri(Config),
-    InProto = rabbit_shovel_behaviour:source_protocol(Config),
-    OutProto = rabbit_shovel_behaviour:dest_protocol(Config),
-    InEndpoint = rabbit_shovel_behaviour:source_endpoint(Config),
-    OutEndpoint = rabbit_shovel_behaviour:dest_endpoint(Config),
-    rabbit_shovel_status:report(State#state.name, State#state.type,
+    InUri = esl_amqp_shovel_behaviour:source_uri(Config),
+    OutUri = esl_amqp_shovel_behaviour:dest_uri(Config),
+    InProto = esl_amqp_shovel_behaviour:source_protocol(Config),
+    OutProto = esl_amqp_shovel_behaviour:dest_protocol(Config),
+    InEndpoint = esl_amqp_shovel_behaviour:source_endpoint(Config),
+    OutEndpoint = esl_amqp_shovel_behaviour:dest_endpoint(Config),
+    esl_amqp_shovel_status:report(State#state.name, State#state.type,
                                 {running, [{src_uri,  rabbit_data_coercion:to_binary(InUri)},
                                            {src_protocol, rabbit_data_coercion:to_binary(InProto)},
                                            {dest_protocol, rabbit_data_coercion:to_binary(OutProto)},
@@ -260,8 +260,8 @@ get_connection_name(_) ->
     <<"Shovel">>.
 
 close_connections(#state{config = Conf}) ->
-    ok = rabbit_shovel_behaviour:close_source(Conf),
-    ok = rabbit_shovel_behaviour:close_dest(Conf).
+    ok = esl_amqp_shovel_behaviour:close_source(Conf),
+    ok = esl_amqp_shovel_behaviour:close_dest(Conf).
 
 get_internal_config(#state{config = Conf}) ->
     Conf.

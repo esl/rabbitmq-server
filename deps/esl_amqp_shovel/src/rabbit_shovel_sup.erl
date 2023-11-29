@@ -5,14 +5,14 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_shovel_sup).
+-module(esl_amqp_shovel_sup).
 -behaviour(supervisor).
 
 -export([start_link/0, init/1]).
 
--import(rabbit_shovel_config, []).
+-import(esl_amqp_shovel_config, []).
 
--include("rabbit_shovel.hrl").
+-include("esl_amqp_shovel.hrl").
 
 start_link() ->
     case parse_configuration(application:get_env(shovels)) of
@@ -26,20 +26,20 @@ init([Configurations]) ->
     Len = dict:size(Configurations),
     ChildSpecs = [
         #{
-            id => rabbit_shovel_status,
-            start => {rabbit_shovel_status, start_link, []},
+            id => esl_amqp_shovel_status,
+            start => {esl_amqp_shovel_status, start_link, []},
             restart => transient,
             shutdown => 16#ffffffff,
             type => worker,
-            modules => [rabbit_shovel_status]
+            modules => [esl_amqp_shovel_status]
         },
         #{
-            id => rabbit_shovel_dyn_worker_sup_sup,
-            start => {rabbit_shovel_dyn_worker_sup_sup, start_link, []},
+            id => esl_amqp_shovel_dyn_worker_sup_sup,
+            start => {esl_amqp_shovel_dyn_worker_sup_sup, start_link, []},
             restart => transient,
             shutdown => 16#ffffffff,
             type => supervisor,
-            modules => [rabbit_shovel_dyn_worker_sup_sup]
+            modules => [esl_amqp_shovel_dyn_worker_sup_sup]
         }
         | make_child_specs(Configurations)
     ],
@@ -51,11 +51,11 @@ make_child_specs(Configurations) ->
             [
                 #{
                     id => ShovelName,
-                    start => {rabbit_shovel_worker_sup, start_link, [ShovelName, ShovelConfig]},
+                    start => {esl_amqp_shovel_worker_sup, start_link, [ShovelName, ShovelConfig]},
                     restart => permanent,
                     shutdown => 16#ffffffff,
                     type => supervisor,
-                    modules => [rabbit_shovel_worker_sup]
+                    modules => [esl_amqp_shovel_worker_sup]
                 }
                 | Acc
             ]
@@ -91,4 +91,4 @@ parse_configuration(_Defaults, _, _Acc) ->
     {error, require_list_of_shovel_configurations}.
 
 validate_shovel_config(ShovelName, ShovelConfig) ->
-    rabbit_shovel_config:parse(ShovelName, ShovelConfig).
+    esl_amqp_shovel_config:parse(ShovelName, ShovelConfig).
