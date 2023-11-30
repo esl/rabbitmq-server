@@ -43,7 +43,7 @@
 <% if (vhosts_interesting) { %>
      <td><%= fmt_string(shovel.vhost) %></td>
 <% } %>
-     <td><%= link_shovel(shovel.vhost, shovel.name) %></td>
+     <td><%= link_esl_shovel(shovel.vhost, shovel.name) %></td>
      <td><%= fmt_string(shovel.value['src-protocol']) %></td>
      <td><%= fmt_shortened_uri(fmt_uri_with_credentials(shovel.value['src-uri'])) %></td>
      <td><%= fmt_shovel_endpoint('src-', shovel.value) %></td>
@@ -68,8 +68,8 @@
 <div class="section-hidden">
   <h2>Add a new shovel</h2>
   <div class="hider">
-    <form action="#/shovel-parameters" method="put">
-      <input type="hidden" name="component" value="shovel"/>
+    <form action="#/esl-shovel-parameters" method="put">
+      <input type="hidden" name="component" value="esl-shovel"/>
       <table class="form dynamic-shovels">
 <% if (vhosts_interesting) { %>
         <tr>

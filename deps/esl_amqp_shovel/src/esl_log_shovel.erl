@@ -6,7 +6,7 @@
 %%
 
 %% @doc Compatibility module for the old Lager-based logging API.
--module(rabbit_log_shovel).
+-module(esl_log_shovel).
 
 -export([debug/1, debug/2, debug/3,
          info/1, info/2, info/3,

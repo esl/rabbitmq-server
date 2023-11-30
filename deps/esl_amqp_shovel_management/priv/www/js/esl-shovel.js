@@ -1,18 +1,18 @@
 dispatcher_add(function(sammy) {
     sammy.get('#/esl-shovels', function() {
-            render({'shovels': {path:    '/shovels',
+            render({'shovels': {path:    '/esl-shovels',
                                 options: {vhost:true}}},
-                    'shovels', '#/esl-shovels');
+                    'esl-shovels', '#/esl-shovels');
         });
     sammy.get('#/esl-dynamic-shovels', function() {
-            render({'shovels': {path:   '/parameters/shovel',
+            render({'shovels': {path:   '/parameters/esl-shovel',
                             options:{vhost:true}},
                     'vhosts': '/vhosts'},
-                   'dynamic-shovels', '#/esl-dynamic-shovels');
+                   'esl-dynamic-shovels', '#/esl-dynamic-shovels');
         });
     sammy.get('#/esl-dynamic-shovels/:vhost/:id', function() {
-            render({'shovel': '/parameters/shovel/' + esc(this.params['vhost']) + '/' + esc(this.params['id'])},
-                   'dynamic-shovel', '#/esl-dynamic-shovels');
+            render({'shovel': '/parameters/esl-shovel/' + esc(this.params['vhost']) + '/' + esc(this.params['id'])},
+                   'esl-dynamic-shovel', '#/esl-dynamic-shovels');
         });
     sammy.put('#/esl-shovel-parameters-move-messages', function() {
             var num_keys = ['src-prefetch-count', 'reconnect-delay'];
@@ -84,7 +84,7 @@ dispatcher_add(function(sammy) {
             return false;
         });
     sammy.del('#/esl-shovel-parameters', function() {
-            if (sync_delete(this, '/shovels/vhost/:vhost/:name')) {
+            if (sync_delete(this, '/esl-shovels/vhost/:vhost/:name')) {
                 go_to('#/esl-dynamic-shovels');
             } else {
                 show_popup('warn', 'Shovel could not be deleted');
@@ -92,7 +92,7 @@ dispatcher_add(function(sammy) {
             }
         });
     sammy.del("#/esl-shovel-restart-link", function(){
-            if (sync_delete(this, '/shovels/vhost/:vhost/:name/restart')) {
+            if (sync_delete(this, '/esl-shovels/vhost/:vhost/:name/restart')) {
                 update();
             } else {
                 show_popup('warn', 'Shovel could not be restarted');
@@ -166,7 +166,7 @@ function rekey_params(sammy, func) {
         }
     }
 }
-function link_shovel(vhost, name) {
+function link_esl_shovel(vhost, name) {
     return _link_to(name, '#/esl-dynamic-shovels/' + esc(vhost) + '/' + esc(name));
 }
 

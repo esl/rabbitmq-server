@@ -13,8 +13,8 @@
 -include_lib("amqp_client/include/amqp_client.hrl").
 -include("esl_amqp_shovel.hrl").
 
-resolve_module(amqp091) -> rabbit_amqp091_shovel;
-resolve_module(amqp10) -> rabbit_amqp10_shovel.
+resolve_module(amqp091) -> esl_amqp091_shovel;
+resolve_module(amqp10) -> esl_amqp10_shovel.
 
 is_legacy(Config) ->
     not proplists:is_defined(source, Config).

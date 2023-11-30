@@ -1,5 +1,6 @@
 load("@rules_erlang//:eunit2.bzl", "eunit")
 load("@rules_erlang//:xref2.bzl", "xref")
+load("@rules_erlang//:ez.bzl", "ez")
 load("@rules_erlang//:dialyze.bzl", "dialyze", "plt")
 load("//:rabbitmq_home.bzl", "rabbitmq_home")
 load("//:rabbitmq_run.bzl", "rabbitmq_run")
@@ -123,4 +124,10 @@ alias(
     name = "esl_amqp_shovel_management",
     actual = ":erlang_app",
     visibility = ["//visibility:public"],
+)
+
+
+ez(
+    name = "esl_amqp_shovel_management_ez",
+    app = ":erlang_app",
 )

@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_amqp091_shovel).
+-module(esl_amqp091_shovel).
 
 -behaviour(esl_amqp_shovel_behaviour).
 

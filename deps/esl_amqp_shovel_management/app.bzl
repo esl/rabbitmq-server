@@ -63,10 +63,10 @@ def all_srcs(name = "all_srcs"):
     filegroup(
         name = "priv",
         srcs = [
-            "priv/www/js/shovel.js",
-            "priv/www/js/tmpl/dynamic-shovel.ejs",
-            "priv/www/js/tmpl/dynamic-shovels.ejs",
-            "priv/www/js/tmpl/shovels.ejs",
+            "priv/www/js/esl-shovel.js",
+            "priv/www/js/tmpl/esl-dynamic-shovel.ejs",
+            "priv/www/js/tmpl/esl-dynamic-shovels.ejs",
+            "priv/www/js/tmpl/esl-shovels.ejs",
         ],
     )
     filegroup(

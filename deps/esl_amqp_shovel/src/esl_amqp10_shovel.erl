@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(rabbit_amqp10_shovel).
+-module(esl_amqp10_shovel).
 
 -behaviour(esl_amqp_shovel_behaviour).
 
@@ -37,7 +37,7 @@
 -import(rabbit_misc, [pget/2, pget/3]).
 -import(rabbit_data_coercion, [to_binary/1]).
 
--define(INFO(Text, Args), rabbit_log_shovel:info(Text, Args)).
+-define(INFO(Text, Args), esl_log_shovel:info(Text, Args)).
 -define(LINK_CREDIT_TIMEOUT, 20_000).
 
 -type state() :: esl_amqp_shovel_behaviour:state().
@@ -222,7 +222,7 @@ handle_dest({amqp10_disposition, {Result, Tag}},
             {#{Tag := IncomingTag}, rejected} ->
                 {1, esl_amqp_shovel_behaviour:nack(IncomingTag, false, State1)};
             _ -> % not found - this should ideally not happen
-                rabbit_log_shovel:warning("Shovel ~ts amqp10 destination disposition tag not found: ~tp",
+                esl_log_shovel:warning("Shovel ~ts amqp10 destination disposition tag not found: ~tp",
                                           [Name, Tag]),
                 {0, State1}
         end,
@@ -398,8 +398,8 @@ set_message_properties(Props, Msg) ->
               amqp10_msg:set_properties(#{reply_to => to_binary(Ct)}, M);
          (message_id, Ct, M) ->
               amqp10_msg:set_properties(#{message_id => to_binary(Ct)}, M);
-         (timestamp, Ct, M) when is_integer(Ct) ->
-              amqp10_msg:set_properties(#{creation_time => Ct * 1000}, M);
+         (timestamp, Ct, M) ->
+              amqp10_msg:set_properties(#{creation_time => timestamp_091_to_10(Ct)}, M);
          (user_id, Ct, M) when Ct =/= undefined ->
               amqp10_msg:set_properties(#{user_id => Ct}, M);
          (headers, Headers0, M) when is_list(Headers0) ->
@@ -467,14 +467,17 @@ timestamp_10_to_091(undefined) ->
     undefined;
 timestamp_10_to_091(T) ->
     trunc(T / 1000).
-
+timestamp_091_to_10(T) when is_integer(T) ->
+    T * 1000;
+timestamp_091_to_10(_) ->
+    undefined.
 
 ttl(T) when is_integer(T) ->
     erlang:integer_to_binary(T);
 ttl(_T)  -> undefined.
 
 conversion_enabled() ->
-    application:get_env(esl_amqp_shovel, convert_amqp10_props_to_amqp091, false).
+    application:get_env(esl_amqp_shovel, convert_amqp10_props_to_amqp091, true).
 
 props_to_map(Msg) ->
     case conversion_enabled() of

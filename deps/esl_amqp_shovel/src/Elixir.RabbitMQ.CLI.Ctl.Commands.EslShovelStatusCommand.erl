@@ -5,7 +5,7 @@
 %% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module('Elixir.RabbitMQ.CLI.Ctl.Commands.ShovelStatusCommand').
+-module('Elixir.RabbitMQ.CLI.Ctl.Commands.EslShovelStatusCommand').
 
 -include("esl_amqp_shovel.hrl").
 
@@ -33,7 +33,7 @@
 %% Callbacks
 %%----------------------------------------------------------------------------
 usage() ->
-    <<"shovel_status">>.
+    <<"esl_shovel_status">>.
 
 usage_doc_guides() ->
     [?SHOVEL_GUIDE_URL].

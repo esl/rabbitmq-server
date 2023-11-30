@@ -68,6 +68,8 @@ ALL_PLUGINS = [
     "//deps/rabbitmq_sharding:erlang_app",
     "//deps/rabbitmq_shovel:erlang_app",
     "//deps/rabbitmq_shovel_management:erlang_app",
+    "//deps/esl_amqp_shovel:erlang_app",
+    "//deps/esl_amqp_shovel_management:erlang_app",
     "//deps/rabbitmq_stomp:erlang_app",
     "//deps/rabbitmq_stream:erlang_app",
     "//deps/rabbitmq_stream_management:erlang_app",
