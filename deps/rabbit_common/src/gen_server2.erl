@@ -1157,7 +1157,7 @@ terminate(Reason, Msg, #gs2_state { name  = Name,
     StopStatsFun(stop_stats_timer(GS2State)),
     case catch Mod:terminate(Reason, State) of
         {'EXIT', R} ->
-            error_info(R, Reason, Name, Msg, State, Debug),
+            error_info(R, Reason, Name, Msg, format_state(GS2State), Debug),
             exit(R);
         _ ->
             case Reason of
@@ -1168,10 +1168,19 @@ terminate(Reason, Msg, #gs2_state { name  = Name,
                 {shutdown,_}=Shutdown ->
                     exit(Shutdown);
                 _ ->
-                    error_info(Reason, undefined, Name, Msg, State, Debug),
+                    error_info(Reason, undefined, Name, Msg, format_state(GS2State), Debug),
                     exit(Reason)
             end
     end.
+
+format_state(#gs2_state{state = State, mod = Mod}) ->
+    FmtStatusArgs = [undefined, [undefined, State]],
+    Status = callback(Mod, format_status, FmtStatusArgs, fun() ->
+        [{data, [{"State", State}]}]
+    end),
+    StatusData = proplists:get_value(data, Status, []),
+    StatusState = proplists:get_value("State", StatusData, State),
+    StatusState.
 
 error_info(_Reason, _RootCause, application_controller, _Msg, _State, _Debug) ->
     %% OTP-5811 Don't send an error report if it's the system process

@@ -25,6 +25,7 @@
          prioritise_cast/3, prioritise_info/3, format_message_queue/2]).
 -export([format/1]).
 -export([is_policy_applicable/2]).
+-export([format_status/2]).
 
 %% Queue's state
 -record(q, {
@@ -132,6 +133,10 @@
 
 -define(INFO_KEYS, [pid | ?CREATION_EVENT_KEYS ++ ?STATISTICS_KEYS -- [name, type]]).
 
+format_status(_Opt, [_Dict, State]) ->
+    [{data, [{"State", State#q{
+        backing_queue_state = backing_queue_state_removed
+    }}]}].
 %%----------------------------------------------------------------------------
 
 -spec info_keys() -> rabbit_types:info_keys().

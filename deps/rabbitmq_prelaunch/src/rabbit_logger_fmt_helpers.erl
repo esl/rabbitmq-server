@@ -149,7 +149,7 @@ format_msg1({report, Report}, Meta, Config) ->
     FormattedReport = format_report(Report, Meta, Config),
     format_msg1(FormattedReport, Meta, Config);
 format_msg1({Format, Args}, _, _) ->
-    io_lib:format(Format, Args).
+    io_lib:format(Format, Args, [{chars_limit, 5 * 100 * 1000}]).
 
 format_report(
   #{label := {application_controller, _}} = Report, Meta, Config) ->
