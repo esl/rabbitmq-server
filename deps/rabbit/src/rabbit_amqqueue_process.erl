@@ -825,14 +825,13 @@ send_reject_publish(#delivery{confirm = true,
 send_reject_publish(#delivery{confirm = false,
                               sender = SenderPid,
                               flow = Flow,
-                              message = Msg},
+                              message = #basic_message{id = MsgId}},
                     _Delivered,
-                    State = #q{q = Q,
+                    State = #q{q = _Q,
                                backing_queue = BQ,
                                backing_queue_state = BQS,
                                msg_id_to_channel = MTC}) ->
     %% Only drop publish
-    MsgId = mc:get_annotation(id, Msg),
     MTC1 = maps:remove(MsgId, MTC),
     BQS1 = BQ:discard(MsgId, SenderPid, Flow, BQS),
     State#q{ backing_queue_state = BQS1, msg_id_to_channel = MTC1 }.
